@@ -1,7 +1,7 @@
 {
   "name": "vmen",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "OneRoster contacts desktop app",
   "author": "OneRoster",
   "type": "module",
@@ -15,8 +15,8 @@
     "desktop:dev": "concurrently -k \"npm:dev\" \"npm:desktop:run\"",
     "desktop:run": "wait-on tcp:5173 && electron .",
     "desktop:build": "npm run build && npm run desktop:build:installer && npm run desktop:build:portable",
-    "desktop:build:installer": "electron-builder -w nsis --config.artifactName=OneRoster-Installer-${version}-${arch}.${ext}",
-    "desktop:build:portable": "electron-builder -w portable --config.artifactName=OneRoster-Portable-${version}-${arch}.${ext}"
+    "desktop:build:installer": "electron-builder -w nsis --config.artifactName=OneRoster-Installer-${arch}.${ext}",
+    "desktop:build:portable": "electron-builder -w portable --config.artifactName=OneRoster-Portable-${arch}.${ext}"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",
@@ -61,7 +61,7 @@
         "nsis"
       ]
     },
-    "artifactName": "OneRoster-Installer-${version}-${arch}.${ext}",
+    "artifactName": "OneRoster-Installer-${arch}.${ext}",
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
