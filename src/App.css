@@ -1633,6 +1633,12 @@ body {
   border-color: transparent;
 }
 
+.header-quick-actions .download-action {
+  background: linear-gradient(135deg, #f59e0b, #ef4444);
+  color: #fff;
+  border-color: transparent;
+}
+
 .header-upload-btn input {
   display: none;
 }
@@ -2194,6 +2200,67 @@ body {
   color: var(--ui-text);
 }
 
+.download-modal {
+  max-width: 760px;
+}
+
+.download-modal-intro {
+  margin: 0;
+  color: var(--ui-text);
+  font-size: 0.95rem;
+}
+
+.download-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.download-option-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(16, 35, 61, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ui-text);
+  text-decoration: none;
+  box-shadow: 0 10px 24px rgba(16, 35, 61, 0.08);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.download-option-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(16, 35, 61, 0.12);
+  border-color: rgba(14, 116, 144, 0.35);
+}
+
+.download-option-card strong {
+  font-size: 1rem;
+}
+
+.download-option-card span {
+  color: var(--ui-muted);
+  font-size: 0.84rem;
+}
+
+.download-option-card.primary {
+  background: linear-gradient(145deg, rgba(245, 158, 11, 0.15), rgba(239, 68, 68, 0.1)), rgba(255, 255, 255, 0.96);
+  border-color: rgba(239, 68, 68, 0.28);
+}
+
+.download-modal-note {
+  margin: 4px 0 0;
+  color: var(--ui-muted);
+  font-size: 0.84rem;
+}
+
+.download-modal-note a {
+  color: var(--ui-primary);
+  font-weight: 700;
+}
+
 .import-file-summary {
   padding: 6px 0;
   border-bottom: 1px solid rgba(16, 35, 61, 0.08);
@@ -2721,6 +2788,10 @@ body {
 
   .kpi-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .download-options-grid {
+    grid-template-columns: 1fr;
   }
 
   .contacts-header {

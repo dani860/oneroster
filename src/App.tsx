@@ -101,6 +101,12 @@ interface BulkEditContactValues {
 
 /* ── Constants ──────────────────────────────────────────── */
 const STORAGE_KEY = 'contacts-manager-state-v4'
+const GITHUB_REPO_URL = 'https://github.com/dani860/oneroster'
+const GITHUB_RELEASES_URL = `${GITHUB_REPO_URL}/releases`
+const GITHUB_INSTALLER_URL = `${GITHUB_REPO_URL}/releases/latest/download/OneRoster-Installer-0.0.0-x64.exe`
+const GITHUB_PORTABLE_URL = `${GITHUB_REPO_URL}/releases/latest/download/OneRoster-Portable-0.0.0-x64.exe`
+const GITHUB_SOURCE_URL = `${GITHUB_REPO_URL}/archive/refs/heads/main.zip`
+const GITHUB_EDIT_URL = 'https://github.dev/dani860/oneroster'
 const NAME_FIX_MODULE_OPTIONS: Array<{ id: NameFixModule; label: string }> = [
   { id: 'spacing', label: 'ניקוי רווחים' },
   { id: 'dictionary', label: 'מילון מלא' },
@@ -1965,6 +1971,7 @@ export default function App() {
   const [dictionaryType, setDictionaryType] = useState<'first' | 'last'>('first')
   const [duplicatesDeletedTotal, setDuplicatesDeletedTotal] = useState(0)
   const [isConversionModalOpen, setIsConversionModalOpen] = useState(false)
+  const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false)
   const [conversionStage, setConversionStage] = useState<'confirm' | 'processing' | 'ready' | 'failed'>('confirm')
   const [pendingUploadFiles, setPendingUploadFiles] = useState<File[]>([])
   const [conversionContacts, setConversionContacts] = useState<Contact[]>([])
@@ -2249,6 +2256,14 @@ export default function App() {
   function closeImportModal() {
     setIsConversionModalOpen(false)
     setPendingUploadFiles([])
+  }
+
+  function openDownloadModal() {
+    setIsDownloadModalOpen(true)
+  }
+
+  function closeDownloadModal() {
+    setIsDownloadModalOpen(false)
   }
 
   function openSystemFilePicker() {
@@ -2668,6 +2683,13 @@ export default function App() {
       {/* Header */}
       <header className="app-header">
         <div className="header-quick-actions">
+          <button
+            type="button"
+            className="download-action"
+            onClick={openDownloadModal}
+          >
+            הורדת תוכנה
+          </button>
           <button
             type="button"
             onClick={() => exportVcf(visibleContacts)}
@@ -3556,6 +3578,48 @@ export default function App() {
                 <button className="btn-primary" onClick={openSystemFilePicker}>נסה שוב</button>
               )}
               <button className="btn-secondary" onClick={closeImportModal}>סגור</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isDownloadModalOpen && (
+        <div className="modal-backdrop" onClick={closeDownloadModal}>
+          <div className="dictionary-modal download-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>הורדת OneRoster</h3>
+              <button className="modal-close" onClick={closeDownloadModal}>✕</button>
+            </div>
+            <div className="modal-body">
+              <p className="download-modal-intro">בחר איך אתה רוצה להמשיך: הורדה למחשב, גרסה ניידת, קוד מקור או כניסה לעריכת הקוד ב־GitHub.</p>
+              <div className="download-options-grid">
+                <a className="download-option-card primary" href={GITHUB_INSTALLER_URL} target="_blank" rel="noreferrer">
+                  <strong>הורד EXE</strong>
+                  <span>מתקין מלא ל־Windows</span>
+                </a>
+                <a className="download-option-card" href={GITHUB_PORTABLE_URL} target="_blank" rel="noreferrer">
+                  <strong>גרסה ניידת</strong>
+                  <span>ללא התקנה, הפעלה ישירה</span>
+                </a>
+                <a className="download-option-card" href={GITHUB_SOURCE_URL} target="_blank" rel="noreferrer">
+                  <strong>הורד קוד מקור</strong>
+                  <span>קובץ ZIP של הפרויקט</span>
+                </a>
+                <a className="download-option-card" href={GITHUB_EDIT_URL} target="_blank" rel="noreferrer">
+                  <strong>עריכת קוד ב־GitHub</strong>
+                  <span>פתיחה ב־github.dev</span>
+                </a>
+              </div>
+              <p className="download-modal-note">
+                אם אחת מגרסאות ההורדה למחשב לא נפתחת, אפשר לעבור לעמוד
+                {' '}
+                <a href={GITHUB_RELEASES_URL} target="_blank" rel="noreferrer">Releases</a>
+                {' '}
+                ולהוריד משם ידנית.
+              </p>
+            </div>
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={closeDownloadModal}>סגור</button>
             </div>
           </div>
         </div>
