@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prototype 05</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="frame">
+      <header class="app-head">
+        <div>
+          <span class="micro-label">Concept 05</span>
+          <h1>Flow Contacts</h1>
+          <p>כיוון נקי, מינימליסטי ורך. כמעט בלי מסגרות, הרבה ריווח, תחושת מוצר מודרני ושקט.</p>
+        </div>
+        <div class="head-actions">
+          <button class="soft-btn">Dictionary</button>
+          <button class="soft-btn">Import</button>
+          <button class="solid-btn">Export</button>
+        </div>
+      </header>
+
+      <section class="hero-band">
+        <div class="hero-copy">
+          <h2>הכל קורה בשקט</h2>
+          <p>פחות קופסאות, פחות רעש ויזואלי, יותר תוכן, ריווח וטיפוגרפיה. מתאים אם אתה רוצה משהו אלגנטי ולא עמוס.</p>
+        </div>
+        <div class="hero-stats">
+          <article><span>Contacts</span><strong>2,418</strong></article>
+          <article><span>Issues</span><strong>64</strong></article>
+          <article><span>Duplicates</span><strong>12</strong></article>
+        </div>
+      </section>
+
+      <section class="subnav">
+        <div class="subnav-tabs">
+          <button class="active">אנשי קשר</button>
+          <button>כפילויות</button>
+          <button>תיקוני שמות</button>
+          <button>עריכה ידנית</button>
+        </div>
+        <div class="subnav-tools">
+          <input type="search" placeholder="חיפוש" />
+          <select><option>מיון לפי שם</option></select>
+        </div>
+      </section>
+
+      <main class="content">
+        <section class="list-col">
+          <div class="section-top">
+            <h3>רשומות פעילות</h3>
+            <span>128 תוצאות</span>
+          </div>
+
+          <div class="airy-list">
+            <article class="airy-row active">
+              <span class="airy-no">01</span>
+              <div class="airy-main">
+                <strong>אבי תמות</strong>
+                <p>Android import</p>
+              </div>
+              <div class="airy-meta">
+                <span>054-7771234</span>
+                <span>avi@example.com</span>
+              </div>
+              <div class="airy-tags">
+                <span class="pill amber">חשד לשם</span>
+                <span class="pill soft">בדיקה</span>
+              </div>
+              <div class="airy-actions">
+                <button>ערוך</button>
+                <button class="danger">מחק</button>
+              </div>
+            </article>
+
+            <article class="airy-row">
+              <span class="airy-no">02</span>
+              <div class="airy-main">
+                <strong>רות כהן</strong>
+                <p>iPhone sync</p>
+              </div>
+              <div class="airy-meta">
+                <span>052-9911882</span>
+                <span>ללא מייל</span>
+              </div>
+              <div class="airy-tags">
+                <span class="pill green">תקין</span>
+              </div>
+              <div class="airy-actions">
+                <button>ערוך</button>
+                <button class="danger">מחק</button>
+              </div>
+            </article>
+
+            <article class="airy-row">
+              <span class="airy-no">03</span>
+              <div class="airy-main">
+                <strong>בן שושן</strong>
+                <p>CSV archive</p>
+              </div>
+              <div class="airy-meta">
+                <span>050-1239090</span>
+                <span>ben@example.com</span>
+              </div>
+              <div class="airy-tags">
+                <span class="pill rose">כפילות</span>
+              </div>
+              <div class="airy-actions">
+                <button>ערוך</button>
+                <button class="danger">מחק</button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <aside class="detail-col">
+          <section class="focus-card">
+            <span class="micro-label">Selected</span>
+            <h3>אבי תמות</h3>
+            <div class="form-grid">
+              <label>שם פרטי<input value="אבי" /></label>
+              <label>שם משפחה<input value="תמות" /></label>
+              <label class="wide">טלפון<input value="054-7771234" /></label>
+              <label class="wide">מייל<input value="avi@example.com" /></label>
+            </div>
+            <div class="focus-actions">
+              <button class="solid-btn">שמור</button>
+              <button class="soft-btn">בטל</button>
+            </div>
+          </section>
+
+          <section class="note-card">
+            <span class="micro-label">Name Fix</span>
+            <p>אביתמות</p>
+            <strong>אבי תמות</strong>
+          </section>
+        </aside>
+      </main>
+    </div>
+  </body>
+  </html>

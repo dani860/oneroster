@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contacts Prototype 04</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="bg-orb orb-a"></div>
+    <div class="bg-orb orb-b"></div>
+    <div class="bg-grid"></div>
+
+    <div class="app-shell">
+      <header class="topbar glass">
+        <div class="brand-wrap">
+          <div class="brand-chip">VMEN / NEXT UI</div>
+          <div>
+            <h1>Contacts Control Surface</h1>
+            <p>כיוון מודרני יותר, עם היררכיה ברורה, משטחים שקופים, ותחושה של מוצר עדכני.</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost-btn">Dictionary</button>
+          <button class="ghost-btn">Import</button>
+          <button class="solid-btn">Export</button>
+        </div>
+      </header>
+
+      <section class="hero-row">
+        <div class="hero-card glass primary-panel">
+          <div class="hero-copy">
+            <span class="eyebrow">Live Workspace</span>
+            <h2>המרכז של אנשי הקשר שלך</h2>
+            <p>
+              פחות טפסים מפוזרים, יותר משטח עבודה אחד שבו אנשי קשר, כפילויות ותיקוני שמות
+              מרגישים כמו חלקים של אותה מערכת.
+            </p>
+          </div>
+          <div class="hero-metrics">
+            <article>
+              <span>Active Contacts</span>
+              <strong>2,418</strong>
+            </article>
+            <article>
+              <span>Name Issues</span>
+              <strong>64</strong>
+            </article>
+            <article>
+              <span>Duplicates</span>
+              <strong>12</strong>
+            </article>
+          </div>
+        </div>
+
+        <aside class="quick-stack">
+          <div class="mini-panel glass accent-a">
+            <span>Manual Queue</span>
+            <strong>21</strong>
+          </div>
+          <div class="mini-panel glass accent-b">
+            <span>Dictionary Gaps</span>
+            <strong>08</strong>
+          </div>
+        </aside>
+      </section>
+
+      <section class="workspace-grid">
+        <nav class="side-nav glass">
+          <button class="nav-item active">
+            <span class="nav-kicker">01</span>
+            <span>אנשי קשר</span>
+          </button>
+          <button class="nav-item">
+            <span class="nav-kicker">02</span>
+            <span>כפילויות</span>
+          </button>
+          <button class="nav-item">
+            <span class="nav-kicker">03</span>
+            <span>תיקוני שמות</span>
+          </button>
+          <button class="nav-item">
+            <span class="nav-kicker">04</span>
+            <span>עריכה ידנית</span>
+          </button>
+        </nav>
+
+        <section class="main-stage glass">
+          <div class="stage-toolbar">
+            <div class="search-shell">
+              <span>⌘</span>
+              <input type="search" placeholder="חיפוש חכם לפי שם, טלפון, מקור" />
+            </div>
+            <div class="toolbar-filters">
+              <select>
+                <option>Sort: Name</option>
+                <option>Sort: Source</option>
+                <option>Sort: Phone</option>
+              </select>
+              <select>
+                <option>Status: All</option>
+                <option>Need Review</option>
+                <option>Approved</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="contact-stream">
+            <article class="stream-card selected">
+              <div class="stream-index">001</div>
+              <div class="stream-main">
+                <div class="stream-title-row">
+                  <h3>אבי תמות</h3>
+                  <div class="stream-badges">
+                    <span class="badge warning">Name Split</span>
+                    <span class="badge neutral">Android</span>
+                  </div>
+                </div>
+                <p>רשומה עם חשד לשם מחובר, נמצאה גם כהצעת תיקון וגם בעריכה ידנית.</p>
+              </div>
+              <div class="stream-meta">
+                <span>054-7771234</span>
+                <span>avi@example.com</span>
+              </div>
+              <div class="stream-actions">
+                <button class="tiny-btn">Edit</button>
+                <button class="tiny-btn danger">Delete</button>
+              </div>
+            </article>
+
+            <article class="stream-card">
+              <div class="stream-index">002</div>
+              <div class="stream-main">
+                <div class="stream-title-row">
+                  <h3>רות כהן</h3>
+                  <div class="stream-badges">
+                    <span class="badge success">Approved</span>
+                    <span class="badge neutral">iPhone</span>
+                  </div>
+                </div>
+                <p>רשומה תקינה, נשמרת כאן כדוגמה לשורה שקטה ונקייה יותר.</p>
+              </div>
+              <div class="stream-meta">
+                <span>052-9911882</span>
+                <span>No email</span>
+              </div>
+              <div class="stream-actions">
+                <button class="tiny-btn">Edit</button>
+                <button class="tiny-btn danger">Delete</button>
+              </div>
+            </article>
+
+            <article class="stream-card accent">
+              <div class="stream-index">003</div>
+              <div class="stream-main">
+                <div class="stream-title-row">
+                  <h3>בן שושן</h3>
+                  <div class="stream-badges">
+                    <span class="badge duplicate">Possible Duplicate</span>
+                    <span class="badge neutral">CSV</span>
+                  </div>
+                </div>
+                <p>מספר טלפון דומה לקבוצה אחרת. מוצג כאן באותה שפה עיצובית, בלי UI מנותק.</p>
+              </div>
+              <div class="stream-meta">
+                <span>050-1239090</span>
+                <span>ben@example.com</span>
+              </div>
+              <div class="stream-actions">
+                <button class="tiny-btn">Edit</button>
+                <button class="tiny-btn danger">Delete</button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <aside class="inspector glass">
+          <div class="inspector-head">
+            <span class="eyebrow">Inspector</span>
+            <h2>פרטי רשומה</h2>
+          </div>
+
+          <section class="info-card active-card">
+            <div class="info-title">
+              <strong>אבי תמות</strong>
+              <span>selected contact</span>
+            </div>
+            <div class="field-list">
+              <label>
+                First name
+                <input value="אבי" />
+              </label>
+              <label>
+                Last name
+                <input value="תמות" />
+              </label>
+              <label>
+                Phone
+                <input value="054-7771234" />
+              </label>
+              <label>
+                Email
+                <input value="avi@example.com" />
+              </label>
+            </div>
+            <div class="inspector-actions">
+              <button class="solid-btn wide">Save Changes</button>
+            </div>
+          </section>
+
+          <section class="info-card split-card">
+            <span class="eyebrow">Name Fix</span>
+            <div class="split-row">
+              <div>
+                <small>Detected</small>
+                <strong>אביתמות</strong>
+              </div>
+              <div class="arrow">→</div>
+              <div>
+                <small>Suggested</small>
+                <strong>אבי תמות</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="info-card subtle-card">
+            <span class="eyebrow">Dictionary Note</span>
+            <p>אפשר להוסיף את תמות למילון משפחה מתוך אותו פאנל, בלי לצאת מהקשר של הרשומה.</p>
+            <button class="ghost-btn wide">Add to Dictionary</button>
+          </section>
+        </aside>
+      </section>
+    </div>
+  </body>
+  </html>

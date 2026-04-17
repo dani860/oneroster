@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contacts UI Prototype 02</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-frame">
+      <aside class="rail">
+        <div class="rail-mark">VM</div>
+        <div class="rail-line"></div>
+        <nav class="rail-nav">
+          <button class="rail-btn active">אנשי קשר</button>
+          <button class="rail-btn">כפילויות</button>
+          <button class="rail-btn">תיקונים</button>
+          <button class="rail-btn">מילון</button>
+        </nav>
+      </aside>
+
+      <main class="canvas">
+        <section class="masthead">
+          <div class="masthead-copy">
+            <span class="stamp">Concept B</span>
+            <h1>Contact Desk</h1>
+            <p>
+              כיוון עיצובי יותר ייחודי: תחושת מערכת עריכה, פחות dashboard גנרי,
+              עם שורות חדות, חלוקה א־סימטרית וקומפוזיציה יותר "מערכתית".
+            </p>
+          </div>
+          <div class="masthead-panel">
+            <div class="metric big">
+              <span>בעיות פעילות</span>
+              <strong>064</strong>
+            </div>
+            <div class="metric-grid">
+              <div class="metric small">
+                <span>כפילויות</span>
+                <strong>12</strong>
+              </div>
+              <div class="metric small">
+                <span>לבדיקה ידנית</span>
+                <strong>21</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="toolbar">
+          <div class="toolbar-left">
+            <label class="search-box">
+              <span>חיפוש</span>
+              <input type="search" placeholder="שם, טלפון, מקור" />
+            </label>
+            <label>
+              <span>מיון</span>
+              <select>
+                <option>לפי שם</option>
+                <option>לפי מקור</option>
+                <option>לפי תאריך</option>
+              </select>
+            </label>
+          </div>
+          <div class="toolbar-right">
+            <button class="outline-btn">הוסף שם למילון</button>
+            <button class="solid-btn">ייבוא</button>
+          </div>
+        </section>
+
+        <section class="board">
+          <div class="board-main">
+            <header class="section-head">
+              <h2>אנשי קשר פתוחים לטיפול</h2>
+              <div class="section-meta">128 רשומות</div>
+            </header>
+
+            <div class="stack-list">
+              <article class="stack-card active">
+                <div class="stack-topline">
+                  <span class="stack-index">01</span>
+                  <span class="stack-source">Android</span>
+                </div>
+                <div class="stack-body">
+                  <div class="stack-name-block">
+                    <h3>אבי תמות</h3>
+                    <p>רשומה עם חשד לשם מחובר בעבר</p>
+                  </div>
+                  <div class="stack-data-block">
+                    <span>054-7771234</span>
+                    <span>avi@example.com</span>
+                  </div>
+                  <div class="stack-state-block">
+                    <span class="state-chip issue">תיקון שם</span>
+                    <span class="state-chip soft">בדיקה ידנית</span>
+                  </div>
+                  <div class="stack-actions-block">
+                    <button>ערוך</button>
+                    <button class="ghost-danger">מחק</button>
+                  </div>
+                </div>
+              </article>
+
+              <article class="stack-card">
+                <div class="stack-topline">
+                  <span class="stack-index">02</span>
+                  <span class="stack-source">iPhone</span>
+                </div>
+                <div class="stack-body">
+                  <div class="stack-name-block">
+                    <h3>רות כהן</h3>
+                    <p>נראית תקינה, נשמרה להשוואה מול כפילות</p>
+                  </div>
+                  <div class="stack-data-block">
+                    <span>052-9911882</span>
+                    <span>ללא מייל</span>
+                  </div>
+                  <div class="stack-state-block">
+                    <span class="state-chip ok">תקין</span>
+                  </div>
+                  <div class="stack-actions-block">
+                    <button>ערוך</button>
+                    <button class="ghost-danger">מחק</button>
+                  </div>
+                </div>
+              </article>
+
+              <article class="stack-card accent">
+                <div class="stack-topline">
+                  <span class="stack-index">03</span>
+                  <span class="stack-source">CSV</span>
+                </div>
+                <div class="stack-body">
+                  <div class="stack-name-block">
+                    <h3>בן שושן</h3>
+                    <p>טלפון דומה לקבוצה אחרת, דורש הכרעה</p>
+                  </div>
+                  <div class="stack-data-block">
+                    <span>050-1239090</span>
+                    <span>ben@example.com</span>
+                  </div>
+                  <div class="stack-state-block">
+                    <span class="state-chip duplicate">כפילות</span>
+                  </div>
+                  <div class="stack-actions-block">
+                    <button>ערוך</button>
+                    <button class="ghost-danger">מחק</button>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <aside class="board-side">
+            <section class="editor-panel">
+              <div class="editor-head">
+                <span class="stamp small">Live Edit</span>
+                <h2>עריכת רשומה</h2>
+              </div>
+              <div class="editor-grid">
+                <label>
+                  שם פרטי
+                  <input value="אבי" />
+                </label>
+                <label>
+                  שם משפחה
+                  <input value="תמות" />
+                </label>
+                <label class="wide">
+                  טלפון ראשי
+                  <input value="054-7771234" />
+                </label>
+                <label class="wide">
+                  מייל
+                  <input value="avi@example.com" />
+                </label>
+              </div>
+              <div class="editor-actions">
+                <button class="solid-btn">שמור</button>
+                <button class="outline-btn">ביטול</button>
+              </div>
+            </section>
+
+            <section class="note-panel mustard">
+              <h3>הצעת תיקון</h3>
+              <p>אביתמות</p>
+              <strong>אבי תמות</strong>
+            </section>
+
+            <section class="note-panel ice">
+              <h3>הערת מערכת</h3>
+              <p>אפשר להוסיף את "תמות" למילון המשפחות כדי להפחית false positives.</p>
+            </section>
+          </aside>
+        </section>
+      </main>
+    </div>
+  </body>
+  </html>

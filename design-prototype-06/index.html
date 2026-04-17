@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prototype 06</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="command-header">
+        <div class="identity">
+          <span class="label">Concept 06</span>
+          <h1>Grid Command</h1>
+          <p>כיוון חד, דחוס ומודולרי יותר. פחות רך, יותר מוצר-performance עם היררכיה טכנית.</p>
+        </div>
+        <div class="header-boxes">
+          <article><span>Contacts</span><strong>2418</strong></article>
+          <article><span>Issues</span><strong>064</strong></article>
+          <article><span>Queue</span><strong>021</strong></article>
+        </div>
+      </header>
+
+      <section class="command-strip">
+        <div class="command-tabs">
+          <button class="active">CONTACTS</button>
+          <button>DUPES</button>
+          <button>FIXES</button>
+          <button>MANUAL</button>
+        </div>
+        <div class="command-tools">
+          <input type="search" placeholder="Search records" />
+          <button>IMPORT</button>
+          <button>DICTIONARY</button>
+        </div>
+      </section>
+
+      <main class="grid-board">
+        <section class="records-panel">
+          <div class="panel-title">
+            <h2>STREAM</h2>
+            <span>LIVE RECORDS</span>
+          </div>
+
+          <div class="record-grid">
+            <article class="record-card active">
+              <div class="record-top">
+                <span>#001</span>
+                <span>ANDROID</span>
+              </div>
+              <h3>אבי תמות</h3>
+              <p>054-7771234</p>
+              <p>avi@example.com</p>
+              <div class="record-badges">
+                <span class="badge issue">NAME FIX</span>
+                <span class="badge dim">REVIEW</span>
+              </div>
+              <div class="record-actions">
+                <button>EDIT</button>
+                <button class="danger">DELETE</button>
+              </div>
+            </article>
+
+            <article class="record-card">
+              <div class="record-top">
+                <span>#002</span>
+                <span>IPHONE</span>
+              </div>
+              <h3>רות כהן</h3>
+              <p>052-9911882</p>
+              <p>NO EMAIL</p>
+              <div class="record-badges">
+                <span class="badge ok">OK</span>
+              </div>
+              <div class="record-actions">
+                <button>EDIT</button>
+                <button class="danger">DELETE</button>
+              </div>
+            </article>
+
+            <article class="record-card warning">
+              <div class="record-top">
+                <span>#003</span>
+                <span>CSV</span>
+              </div>
+              <h3>בן שושן</h3>
+              <p>050-1239090</p>
+              <p>ben@example.com</p>
+              <div class="record-badges">
+                <span class="badge duplicate">DUPLICATE</span>
+              </div>
+              <div class="record-actions">
+                <button>EDIT</button>
+                <button class="danger">DELETE</button>
+              </div>
+            </article>
+
+            <article class="record-card">
+              <div class="record-top">
+                <span>#004</span>
+                <span>MANUAL</span>
+              </div>
+              <h3>שירה לוי</h3>
+              <p>053-8189000</p>
+              <p>shira@example.com</p>
+              <div class="record-badges">
+                <span class="badge dim">STABLE</span>
+              </div>
+              <div class="record-actions">
+                <button>EDIT</button>
+                <button class="danger">DELETE</button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <aside class="side-stack">
+          <section class="data-panel focus">
+            <div class="panel-title compact">
+              <h2>EDITOR</h2>
+              <span>#001</span>
+            </div>
+            <div class="data-form">
+              <label>FIRST NAME<input value="אבי" /></label>
+              <label>LAST NAME<input value="תמות" /></label>
+              <label>PHONE<input value="054-7771234" /></label>
+              <label>EMAIL<input value="avi@example.com" /></label>
+            </div>
+            <button class="wide-action">SAVE RECORD</button>
+          </section>
+
+          <section class="data-panel accent">
+            <div class="panel-title compact">
+              <h2>NAME FIX</h2>
+              <span>AI CHECK</span>
+            </div>
+            <div class="fix-line">
+              <span>אביתמות</span>
+              <strong>אבי תמות</strong>
+            </div>
+          </section>
+
+          <section class="data-panel accent-2">
+            <div class="panel-title compact">
+              <h2>DICTIONARY</h2>
+              <span>ACTION</span>
+            </div>
+            <p>הוסף את תמות למילון שם משפחה כדי למנוע false positives.</p>
+            <button class="wide-action secondary">ADD ENTRY</button>
+          </section>
+        </aside>
+      </main>
+    </div>
+  </body>
+  </html>

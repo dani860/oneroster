@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" fill="none">
+  <rect width="1200" height="600" fill="#F8FAFC"/>
+  <rect x="20" y="20" width="1160" height="560" rx="28" stroke="#111827" stroke-width="2" fill="#FFFFFF"/>
+
+  <g transform="translate(130 120)">
+    <rect x="0" y="0" width="260" height="260" rx="42" fill="#111827"/>
+    <path d="M72 173V88H118C155 88 178 110 178 145C178 180 155 203 118 203H92" stroke="#F9FAFB" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="199" cy="210" r="18" fill="#F9FAFB"/>
+  </g>
+
+  <text x="460" y="245" fill="#0F172A" font-family="Segoe UI, Arial" font-size="88" font-weight="900">OneRoster</text>
+  <text x="460" y="308" fill="#475569" font-family="Segoe UI, Arial" font-size="30" font-weight="600" letter-spacing="2">CONTACT MANAGER</text>
+
+  <rect x="460" y="340" width="520" height="2" fill="#CBD5E1"/>
+  <text x="1060" y="392" fill="#111827" font-family="Segoe UI, Arial" font-size="43" font-weight="700" direction="rtl" text-anchor="end">מנהל אנשי קשר</text>
+</svg>

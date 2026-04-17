@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contacts UI Prototype</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="hero">
+        <div>
+          <div class="eyebrow">Prototype</div>
+          <h1>מנהל אנשי קשר</h1>
+          <p>כיוון עיצובי חדש, נקי ומסודר, בלי לגעת בפרויקט הראשי.</p>
+        </div>
+        <div class="hero-stats">
+          <div class="stat-card">
+            <span>אנשי קשר</span>
+            <strong>2,418</strong>
+          </div>
+          <div class="stat-card">
+            <span>כפילויות</span>
+            <strong>37</strong>
+          </div>
+          <div class="stat-card alert">
+            <span>תיקוני שמות</span>
+            <strong>64</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="topbar">
+        <div class="tabs">
+          <button class="tab active">אנשי קשר</button>
+          <button class="tab">זיהוי כפולים</button>
+          <button class="tab">תיקון שמות</button>
+          <button class="tab">עריכה ידנית</button>
+        </div>
+        <div class="actions">
+          <button class="btn secondary">הוסף למילון</button>
+          <button class="btn primary">ייבוא VCF</button>
+        </div>
+      </section>
+
+      <section class="filters">
+        <label>
+          חיפוש
+          <input type="search" placeholder="שם, טלפון, מקור" />
+        </label>
+        <label>
+          מיון
+          <select>
+            <option>שם פרטי</option>
+            <option>שם משפחה</option>
+            <option>מקור</option>
+          </select>
+        </label>
+        <label>
+          כיוון
+          <select>
+            <option>עולה</option>
+            <option>יורד</option>
+          </select>
+        </label>
+        <label>
+          מקור
+          <select>
+            <option>כל המקורות</option>
+            <option>Android</option>
+            <option>iPhone</option>
+          </select>
+        </label>
+      </section>
+
+      <main class="content-grid">
+        <section class="panel list-panel">
+          <div class="panel-head">
+            <div>
+              <h2>רשימת אנשי קשר</h2>
+              <p>שורה אחת לכל איש קשר, עם פעולות מהירות.</p>
+            </div>
+            <span class="pill">128 מוצגים</span>
+          </div>
+
+          <div class="contact-list">
+            <article class="contact-row selected">
+              <div class="row-index">#1</div>
+              <div class="row-main">
+                <strong>אבי תמות</strong>
+                <span>מקור: Android</span>
+              </div>
+              <div class="row-sub">
+                <span>054-7771234</span>
+                <span>avi@example.com</span>
+              </div>
+              <div class="row-tags">
+                <span class="tag neutral">רגיל</span>
+                <span class="tag warning">צריך בדיקה</span>
+              </div>
+              <div class="row-actions">
+                <button class="icon-btn">✎</button>
+                <button class="icon-btn danger">🗑</button>
+              </div>
+            </article>
+
+            <article class="contact-row">
+              <div class="row-index">#2</div>
+              <div class="row-main">
+                <strong>רות כהן</strong>
+                <span>מקור: iPhone</span>
+              </div>
+              <div class="row-sub">
+                <span>052-9911882</span>
+                <span>אין מייל</span>
+              </div>
+              <div class="row-tags">
+                <span class="tag success">תקין</span>
+              </div>
+              <div class="row-actions">
+                <button class="icon-btn">✎</button>
+                <button class="icon-btn danger">🗑</button>
+              </div>
+            </article>
+
+            <article class="contact-row">
+              <div class="row-index">#3</div>
+              <div class="row-main">
+                <strong>בן שושן</strong>
+                <span>מקור: CSV</span>
+              </div>
+              <div class="row-sub">
+                <span>050-1239090</span>
+                <span>ben@example.com</span>
+              </div>
+              <div class="row-tags">
+                <span class="tag neutral">כפילות אפשרית</span>
+              </div>
+              <div class="row-actions">
+                <button class="icon-btn">✎</button>
+                <button class="icon-btn danger">🗑</button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <aside class="panel side-panel">
+          <div class="panel-head compact">
+            <div>
+              <h2>פרטי איש קשר</h2>
+              <p>תצוגת עריכה קומפקטית וברורה.</p>
+            </div>
+          </div>
+
+          <div class="profile-card">
+            <div class="profile-title">
+              <strong>אבי תמות</strong>
+              <span>Android import</span>
+            </div>
+
+            <div class="field-grid">
+              <label>
+                שם פרטי
+                <input value="אבי" />
+              </label>
+              <label>
+                שם משפחה
+                <input value="תמות" />
+              </label>
+              <label class="wide">
+                טלפון
+                <input value="054-7771234" />
+              </label>
+              <label class="wide">
+                מייל
+                <input value="avi@example.com" />
+              </label>
+            </div>
+
+            <div class="profile-actions">
+              <button class="btn primary">שמירה</button>
+              <button class="btn secondary">בטל</button>
+            </div>
+          </div>
+
+          <div class="mini-section">
+            <h3>תיקוני שמות</h3>
+            <div class="suggestion-card">
+              <span class="mini-index">#12</span>
+              <div>
+                <strong>אביתמות</strong>
+                <p>הצעה: אבי תמות</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mini-section">
+            <h3>כפילויות</h3>
+            <div class="suggestion-card">
+              <span class="mini-index">#4</span>
+              <div>
+                <strong>רות כהן</strong>
+                <p>נמצא דמיון במספר טלפון ובשם</p>
+              </div>
+            </div>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </body>
+  </html>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="600" viewBox="0 0 1200 600" fill="none">
+  <defs>
+    <radialGradient id="bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(160 120) rotate(33) scale(1180 770)">
+      <stop stop-color="#4C1D95"/>
+      <stop offset="1" stop-color="#0B1027"/>
+    </radialGradient>
+    <linearGradient id="pulse" x1="130" y1="90" x2="430" y2="430" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDE047"/>
+      <stop offset="0.45" stop-color="#FB7185"/>
+      <stop offset="1" stop-color="#60A5FA"/>
+    </linearGradient>
+    <filter id="shadow" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect x="8" y="8" width="1184" height="584" rx="32" fill="url(#bg)" stroke="#334155" stroke-width="2"/>
+
+  <g transform="translate(120 80)" filter="url(#shadow)">
+    <rect x="0" y="0" width="300" height="300" rx="54" fill="url(#pulse)"/>
+    <rect x="32" y="32" width="236" height="236" rx="40" fill="#0F172A" opacity="0.86"/>
+    <path d="M84 170C97 131 130 106 169 106C208 106 241 131 254 170" stroke="#FDE047" stroke-width="15" stroke-linecap="round"/>
+    <rect x="93" y="178" width="152" height="52" rx="26" fill="#F9FAFB"/>
+    <circle cx="133" cy="204" r="11" fill="#0F172A"/>
+    <rect x="154" y="196" width="70" height="16" rx="8" fill="#0F172A"/>
+  </g>
+
+  <text x="500" y="245" fill="#F8FAFC" font-family="Segoe UI, Arial" font-size="83" font-weight="900">OneRoster</text>
+  <text x="500" y="312" fill="#E879F9" font-family="Segoe UI, Arial" font-size="30" font-weight="700" letter-spacing="2">CONTACT MANAGER</text>
+
+  <text x="1080" y="388" fill="#F8FAFC" font-family="Segoe UI, Arial" font-size="44" font-weight="700" direction="rtl" text-anchor="end">מנהל אנשי קשר</text>
+</svg>

@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contacts Prototype 03</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="layout">
+      <header class="topbar">
+        <div class="brand-block">
+          <span class="brand-tag">Visual Study C</span>
+          <h1>ספר קשר</h1>
+        </div>
+        <div class="top-actions">
+          <button class="quiet-btn">מילון</button>
+          <button class="quiet-btn">יבוא</button>
+          <button class="solid-btn">יצוא</button>
+        </div>
+      </header>
+
+      <section class="hero-strip">
+        <div class="hero-title">
+          <p>ממשק ניהול עם אופי של קטלוג חי, פחות SaaS, יותר מערכת עבודה.</p>
+          <strong>2,418</strong>
+          <span>רשומות פעילות</span>
+        </div>
+        <div class="hero-counters">
+          <article>
+            <span>כפילויות</span>
+            <strong>12</strong>
+          </article>
+          <article>
+            <span>שמות חריגים</span>
+            <strong>64</strong>
+          </article>
+          <article>
+            <span>לטיפול ידני</span>
+            <strong>21</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="filter-ribbon">
+        <div class="ribbon-tabs">
+          <button class="active">אנשי קשר</button>
+          <button>כפילויות</button>
+          <button>תיקוני שמות</button>
+          <button>עריכה ידנית</button>
+        </div>
+        <div class="ribbon-controls">
+          <input type="search" placeholder="חיפוש מהיר" />
+          <select>
+            <option>לפי שם</option>
+            <option>לפי מקור</option>
+            <option>לפי טלפון</option>
+          </select>
+        </div>
+      </section>
+
+      <main class="content">
+        <section class="ledger-panel">
+          <div class="section-head">
+            <h2>רשימת עבודה</h2>
+            <span>שורות פעילות</span>
+          </div>
+
+          <div class="ledger-list">
+            <article class="ledger-row selected">
+              <div class="ledger-no">001</div>
+              <div class="ledger-name">
+                <strong>אבי תמות</strong>
+                <span>Android import</span>
+              </div>
+              <div class="ledger-contact">
+                <span>054-7771234</span>
+                <span>avi@example.com</span>
+              </div>
+              <div class="ledger-state">
+                <span class="chip amber">חשד לשם</span>
+                <span class="chip pale">נבדק</span>
+              </div>
+              <div class="ledger-tools">
+                <button>ערוך</button>
+                <button class="danger">מחק</button>
+              </div>
+            </article>
+
+            <article class="ledger-row">
+              <div class="ledger-no">002</div>
+              <div class="ledger-name">
+                <strong>רות כהן</strong>
+                <span>iPhone sync</span>
+              </div>
+              <div class="ledger-contact">
+                <span>052-9911882</span>
+                <span>ללא מייל</span>
+              </div>
+              <div class="ledger-state">
+                <span class="chip green">תקין</span>
+              </div>
+              <div class="ledger-tools">
+                <button>ערוך</button>
+                <button class="danger">מחק</button>
+              </div>
+            </article>
+
+            <article class="ledger-row marked">
+              <div class="ledger-no">003</div>
+              <div class="ledger-name">
+                <strong>בן שושן</strong>
+                <span>CSV archive</span>
+              </div>
+              <div class="ledger-contact">
+                <span>050-1239090</span>
+                <span>ben@example.com</span>
+              </div>
+              <div class="ledger-state">
+                <span class="chip rose">כפילות</span>
+              </div>
+              <div class="ledger-tools">
+                <button>ערוך</button>
+                <button class="danger">מחק</button>
+              </div>
+            </article>
+
+            <article class="ledger-row">
+              <div class="ledger-no">004</div>
+              <div class="ledger-name">
+                <strong>שירה לוי</strong>
+                <span>Manual import</span>
+              </div>
+              <div class="ledger-contact">
+                <span>053-8189000</span>
+                <span>shira@example.com</span>
+              </div>
+              <div class="ledger-state">
+                <span class="chip pale">ללא הערה</span>
+              </div>
+              <div class="ledger-tools">
+                <button>ערוך</button>
+                <button class="danger">מחק</button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <aside class="detail-column">
+          <section class="detail-card feature">
+            <div class="detail-head">
+              <span class="mini-tag">רשומה נבחרת</span>
+              <h2>אבי תמות</h2>
+            </div>
+            <div class="detail-grid">
+              <label>
+                שם פרטי
+                <input value="אבי" />
+              </label>
+              <label>
+                שם משפחה
+                <input value="תמות" />
+              </label>
+              <label class="wide">
+                טלפון
+                <input value="054-7771234" />
+              </label>
+              <label class="wide">
+                מייל
+                <input value="avi@example.com" />
+              </label>
+            </div>
+            <div class="detail-actions">
+              <button class="solid-btn">שמור</button>
+              <button class="quiet-btn">בטל</button>
+            </div>
+          </section>
+
+          <section class="detail-card aside-note">
+            <span class="mini-tag">תיקון מוצע</span>
+            <p class="aside-overline">השם שזוהה</p>
+            <strong>אביתמות</strong>
+            <p class="aside-overline">הצעה</p>
+            <strong>אבי תמות</strong>
+          </section>
+
+          <section class="detail-card aside-note soft">
+            <span class="mini-tag">הערת מילון</span>
+            <p>אפשר להוסיף את תמות כמילת משפחה כדי להפחית זיהויי שווא בעתיד.</p>
+          </section>
+        </aside>
+      </main>
+    </div>
+  </body>
+  </html>
