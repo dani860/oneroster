@@ -12,6 +12,13 @@ dist
 release
 dist-ssr
 *.local
+*.tsbuildinfo
+*.zip
+analysis-*.json
+uploads/*.csv
+uploads/*.txt
+uploads/*.ib
+uploads/*.in
 
 # Editor directories and files
 .vscode/*
