@@ -27,7 +27,15 @@ jobs:
         run: npm ci
 
       - name: Build desktop artifacts
-        run: npm run desktop:build
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          npm run build
+          npm run desktop:build:installer
+          npm run desktop:build:portable
+
+      - name: Verify release artifacts
+        run: dir release
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
