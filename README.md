@@ -2,6 +2,12 @@
 
 אפליקציית React + TypeScript לניהול אנשי קשר מקובץ טלפון, עם עבודה מקומית בלבד.
 
+## קישורים מהירים
+
+- אתר האפליקציה: https://dani860.github.io/oneroster/
+- עמוד הפרויקט ב-GitHub: https://github.com/dani860/oneroster
+- עמוד Releases להורדת גרסאות: https://github.com/dani860/oneroster/releases
+
 ## יכולות עיקריות
 
 - טעינת קובץ VCF מהמחשב.

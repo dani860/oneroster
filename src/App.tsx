@@ -104,7 +104,7 @@ const STORAGE_KEY = 'contacts-manager-state-v4'
 const GITHUB_REPO_URL = 'https://github.com/dani860/oneroster'
 const GITHUB_RELEASES_URL = `${GITHUB_REPO_URL}/releases`
 const GITHUB_INSTALLER_URL = `${GITHUB_REPO_URL}/releases/latest/download/OneRoster-Installer-x64.exe`
-const GITHUB_PORTABLE_URL = `${GITHUB_REPO_URL}/releases/latest/download/OneRoster-Portable-x64.rar`
+const GITHUB_PORTABLE_URL = `${GITHUB_REPO_URL}/releases/latest/download/OneRoster-Portable-x64.exe`
 const GITHUB_SOURCE_URL = `${GITHUB_REPO_URL}/archive/refs/heads/main.zip`
 const GITHUB_EDIT_URL = 'https://github.dev/dani860/oneroster'
 const NAME_FIX_MODULE_OPTIONS: Array<{ id: NameFixModule; label: string }> = [
@@ -3599,11 +3599,15 @@ export default function App() {
                 </a>
                 <a className="download-option-card" href={GITHUB_PORTABLE_URL} target="_blank" rel="noreferrer">
                   <strong>גרסה ניידת</strong>
-                  <span>קובץ דחוס נייד, ללא התקנה</span>
+                  <span>קובץ EXE נייד, ללא התקנה</span>
                 </a>
                 <a className="download-option-card" href={GITHUB_SOURCE_URL} target="_blank" rel="noreferrer">
                   <strong>הורד קוד מקור</strong>
                   <span>קובץ ZIP של הפרויקט</span>
+                </a>
+                <a className="download-option-card" href={GITHUB_REPO_URL} target="_blank" rel="noreferrer">
+                  <strong>עמוד הפרויקט ב־GitHub</strong>
+                  <span>צפייה בקוד, Issues ו־PR</span>
                 </a>
                 <a className="download-option-card" href={GITHUB_EDIT_URL} target="_blank" rel="noreferrer">
                   <strong>עריכת קוד ב־GitHub</strong>
