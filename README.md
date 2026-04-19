@@ -34,9 +34,9 @@ npm run build
 npm run preview
 ```
 
-## אפליקציית Windows להפצה (EXE)
+## אפליקציית Windows להפצה
 
-האפליקציה מוגדרת גם כ-Desktop עם Electron, כדי שתוכל לשלוח קובץ התקנה למשתמשים בקלות.
+האפליקציה מוגדרת גם כ-Desktop עם Electron. כרגע ההפצה הרשמית היא בגרסה ניידת בלבד.
 
 ### הרצה מקומית כאפליקציית Desktop
 
@@ -44,15 +44,14 @@ npm run preview
 npm run desktop:dev
 ```
 
-### יצירת קבצי הפצה ל-Windows
+### יצירת קובץ הפצה ל-Windows
 
 ```bash
 npm run desktop:build
 ```
 
-אחרי סיום התהליך תמצא את קבצי ההפצה בתיקייה `release`:
+אחרי סיום התהליך תמצא את קובץ ההפצה בתיקייה `release`:
 
-- `OneRoster-Installer-<version>-x64.exe` - מתקין רגיל (מומלץ לרוב המשתמשים)
 - `OneRoster-Portable-<version>-x64.exe` - גרסה ניידת ללא התקנה
 
 ## הערות

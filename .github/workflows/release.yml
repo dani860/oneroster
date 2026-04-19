@@ -31,7 +31,6 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: |
           npm run build
-          npm run desktop:build:installer
           npm run desktop:build:portable
 
       - name: Verify release artifacts
@@ -42,7 +41,4 @@ jobs:
         with:
           generate_release_notes: true
           files: |
-            release/OneRoster-Installer-*.exe
-            release/OneRoster-Installer-*.exe.blockmap
             release/OneRoster-Portable-*.exe
-            release/OneRoster-Portable-*.rar

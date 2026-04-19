@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, useDeferredValue } from 'react'
 import './App.css'
 
 /* ── Types ─────────────────────────────────────────────── */
@@ -62,7 +62,25 @@ interface ImportTelemetry {
   details: string[]
 }
 
-type NameEditIssueType = 'hasDigits' | 'hasWeirdChars' | 'hasExtraSpaces' | 'hasRomanNumerals' | 'hasSymbols' | 'hasSpecialChars'
+type NameEditIssueType =
+  | 'hasDigits'
+  | 'hasWeirdChars'
+  | 'hasExtraSpaces'
+  | 'hasRomanNumerals'
+  | 'hasSymbols'
+  | 'hasSpecialChars'
+  | 'unknownFirstName'
+  | 'unknownLastName'
+  | 'hasLongToken'
+  | 'hasMixedScripts'
+  | 'hasRepeatedChars'
+  | 'looksGluedWords'
+
+interface NameAnomalyAnalysis {
+  issueTypes: NameEditIssueType[]
+  score: number
+  severity: number
+}
 
 interface ManualEditIssue {
   contactId: string
@@ -71,6 +89,7 @@ interface ManualEditIssue {
   fullName: string
   issueTypes: NameEditIssueType[]
   severity: number // 1-5 based on total issues
+  score: number
 }
 
 interface ParsedImportBatch {
@@ -103,7 +122,6 @@ interface BulkEditContactValues {
 const STORAGE_KEY = 'contacts-manager-state-v4'
 const GITHUB_REPO_URL = 'https://github.com/dani860/oneroster'
 const GITHUB_RELEASES_URL = `${GITHUB_REPO_URL}/releases`
-const GITHUB_INSTALLER_URL = `${GITHUB_REPO_URL}/releases/latest/download/OneRoster-Installer-x64.exe`
 const GITHUB_PORTABLE_URL = `${GITHUB_REPO_URL}/releases/latest/download/OneRoster-Portable-x64.exe`
 const GITHUB_SOURCE_URL = `${GITHUB_REPO_URL}/archive/refs/heads/main.zip`
 const GITHUB_EDIT_URL = 'https://github.dev/dani860/oneroster'
@@ -489,6 +507,55 @@ function parseLooseContacts(text: string, source: string): Contact[] {
   }
 
   return contacts
+}
+
+function mergeIntoFirstName(firstName: string, lastName: string): { firstName: string; lastName: string } {
+  return { firstName: [firstName, lastName].filter(Boolean).join(' '), lastName: '' }
+}
+
+function buildWordOrderVariants(words: string[], anchorValue: string): string[] {
+  const variants: string[] = []
+  const used = new Array(words.length).fill(false)
+  const current: string[] = []
+
+  function build(depth: number) {
+    if (depth === words.length) {
+      variants.push(current.join(' '))
+      return
+    }
+
+    const seenAtDepth = new Set<string>()
+    for (let i = 0; i < words.length; i++) {
+      if (used[i]) continue
+      const token = words[i]
+      if (seenAtDepth.has(token)) continue
+      seenAtDepth.add(token)
+      used[i] = true
+      current.push(token)
+      build(depth + 1)
+      current.pop()
+      used[i] = false
+    }
+  }
+
+  build(0)
+
+  const anchorWords = anchorValue.trim().split(/\s+/).filter(Boolean)
+  const anchorFirst = anchorWords[0] ?? ''
+  const normalizedAnchor = anchorWords.join(' ')
+
+  const unique = [...new Set(variants)]
+  const rest = unique.filter(v => v !== normalizedAnchor)
+  const firstMoved = rest.filter(v => (v.split(' ')[0] ?? '') !== anchorFirst)
+  const firstSame = rest.filter(v => (v.split(' ')[0] ?? '') === anchorFirst)
+
+  return [normalizedAnchor, ...firstMoved, ...firstSame]
+}
+
+function splitOffLastName(firstName: string, lastName: string): { firstName: string; lastName: string } {
+  const parts = firstName.trim().split(/\s+/).filter(Boolean)
+  if (parts.length < 2) return { firstName, lastName }
+  return { firstName: parts[0], lastName: [...parts.slice(1), lastName].filter(Boolean).join(' ') }
 }
 
 function splitStructuredName(value: string): { firstName: string; lastName: string } {
@@ -1402,6 +1469,114 @@ function isTokenWeird(token: string): boolean {
   return /[^\u0590-\u05FFa-zA-Z'\-]/.test(token)
 }
 
+function splitNameTokensForAnalysis(value: string): string[] {
+  return value
+    .trim()
+    .replace(/[־-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .split(' ')
+    .map(token => token.trim())
+    .filter(Boolean)
+}
+
+function tokenExistsInAnyNameDictionary(token: string): boolean {
+  return COMMON_HE_FIRST_NAMES.has(token) || COMMON_HE_LAST_NAMES.has(token)
+}
+
+function hasLikelyDictionarySplit(token: string): boolean {
+  const compact = token.replace(/[׳"'`\-]/g, '')
+  if (compact.length < 7 || tokenExistsInAnyNameDictionary(compact)) return false
+
+  for (let index = 2; index <= compact.length - 2; index++) {
+    const left = compact.slice(0, index)
+    const right = compact.slice(index)
+    if (tokenExistsInAnyNameDictionary(left) && tokenExistsInAnyNameDictionary(right)) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function scoreNameIssues(issueTypes: NameEditIssueType[]): number {
+  const weights: Record<NameEditIssueType, number> = {
+    hasDigits: 4,
+    hasWeirdChars: 3,
+    hasExtraSpaces: 1,
+    hasRomanNumerals: 2,
+    hasSymbols: 2,
+    hasSpecialChars: 3,
+    unknownFirstName: 1,
+    unknownLastName: 1,
+    hasLongToken: 4,
+    hasMixedScripts: 3,
+    hasRepeatedChars: 2,
+    looksGluedWords: 6,
+  }
+
+  return issueTypes.reduce((sum, issueType) => sum + weights[issueType], 0)
+}
+
+function scoreToSeverity(score: number): number {
+  if (score >= 10) return 5
+  if (score >= 7) return 4
+  if (score >= 5) return 3
+  if (score >= 3) return 2
+  return score > 0 ? 1 : 0
+}
+
+function analyzeContactNameAnomaly(contact: Contact): NameAnomalyAnalysis {
+  const issueTypes = new Set<NameEditIssueType>()
+
+  const inspectField = (value: string, field: 'firstName' | 'lastName') => {
+    if (!value || !value.trim()) return
+
+    const tokens = splitNameTokensForAnalysis(value)
+    const letterTokens = tokens.filter(token => /^[A-Za-z\u0590-\u05FF'׳״]+$/u.test(token))
+    const hebrewTokens = letterTokens.filter(token => /[א-ת]/.test(token) && token.length >= 2)
+    const dictionary = field === 'firstName' ? COMMON_HE_FIRST_NAMES : COMMON_HE_LAST_NAMES
+
+    if (/\d/.test(value)) issueTypes.add('hasDigits')
+    if (/\s{2,}/.test(value)) issueTypes.add('hasExtraSpaces')
+    if (/[()[\]{}<>]/.test(value)) issueTypes.add('hasSymbols')
+    if (/[!@#$%^&*=+|\\~`_]/.test(value)) issueTypes.add('hasSpecialChars')
+    if (/[א-תשׁ][ִיֵּ]|[ּ-ׂ]/.test(value)) issueTypes.add('hasWeirdChars')
+    if (/[A-Za-z]/.test(value) && /[א-ת]/.test(value)) issueTypes.add('hasMixedScripts')
+    if (/(.)\1{3,}/.test(value.replace(/\s+/g, ''))) issueTypes.add('hasRepeatedChars')
+    if (tokens.some(token => token.length >= 11)) issueTypes.add('hasLongToken')
+
+    if (/\b(?:I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|XIII)\b/i.test(value) && !/\bisrael\b/i.test(value)) {
+      issueTypes.add('hasRomanNumerals')
+    }
+
+    if (hebrewTokens.some(token => hasLikelyDictionarySplit(token))) {
+      issueTypes.add('looksGluedWords')
+    }
+
+    const shouldFlagUnknownField =
+      hebrewTokens.length === 1 &&
+      !value.includes(' ') &&
+      hebrewTokens[0].length >= 8 &&
+      !dictionary.has(hebrewTokens[0])
+
+    if (shouldFlagUnknownField) {
+      issueTypes.add(field === 'firstName' ? 'unknownFirstName' : 'unknownLastName')
+    }
+  }
+
+  inspectField(contact.firstName, 'firstName')
+  inspectField(contact.lastName, 'lastName')
+
+  const dedupedIssueTypes = [...issueTypes]
+  const score = scoreNameIssues(dedupedIssueTypes)
+
+  return {
+    issueTypes: dedupedIssueTypes,
+    score,
+    severity: scoreToSeverity(score),
+  }
+}
+
 function nameQualityScore(c: Contact): number {
   const fullName = [c.firstName, c.lastName].filter(Boolean).join(' ').trim() || c.name.trim()
   if (!fullName) return -20
@@ -1531,47 +1706,24 @@ function areLikelySameName(a: Contact, b: Contact): boolean {
 }
 
 function analyzeNamesForManualEdit(contacts: Contact[]): ManualEditIssue[] {
-  function detectIssues(value: string): NameEditIssueType[] {
-    const issues: NameEditIssueType[] = []
-    if (!value || !value.trim()) return issues
-    
-    if (/\d/.test(value)) issues.push('hasDigits')
-    if (/\s{2,}/.test(value)) issues.push('hasExtraSpaces')
-    if (/[()[\]{}<>]/.test(value)) issues.push('hasSymbols')
-    if (/[!@#$%^&*=+|\\~`]/.test(value)) issues.push('hasSpecialChars')
-    if (/[א-תשׁ][ִיֵּ]|[ּ-ׂ]/.test(value)) issues.push('hasWeirdChars')
-    
-    // Roman numerals detection - look for patterns like I, II, III, IV, V, VI, VII, VIII, IX, X
-    if (/\b([IVX]{1,3})\b/i.test(value) && !/israel|israel|IV|IV/i.test(value)) {
-      issues.push('hasRomanNumerals')
-    }
-    
-    return issues
-  }
-
   const analyzed: ManualEditIssue[] = []
   for (const c of contacts) {
-    const firstIssues = detectIssues(c.firstName)
-    const lastIssues = detectIssues(c.lastName)
-    
-    if (firstIssues.length === 0 && lastIssues.length === 0) continue
-    
-    const allIssues = [...new Set([...firstIssues, ...lastIssues])]
-    const totalCount = firstIssues.length + lastIssues.length
-    const severity = Math.min(5, Math.max(1, totalCount))
-    
+    const analysis = analyzeContactNameAnomaly(c)
+    if (analysis.issueTypes.length === 0) continue
+
     analyzed.push({
       contactId: c.id,
       firstName: c.firstName,
       lastName: c.lastName,
       fullName: c.name || formatNameDisplay(c.firstName, c.lastName) || 'ללא שם',
-      issueTypes: allIssues,
-      severity,
+      issueTypes: analysis.issueTypes,
+      severity: analysis.severity,
+      score: analysis.score,
     })
   }
 
-  // Sort by severity (descending), then by issue type count
   return analyzed.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score
     if (b.severity !== a.severity) return b.severity - a.severity
     return b.issueTypes.length - a.issueTypes.length
   })
@@ -1946,7 +2098,7 @@ export default function App() {
   const [bulkEditValues, setBulkEditValues] = useState<Record<string, BulkEditContactValues>>({})
   const [activeTab, setActiveTab] = useState<'contacts' | 'duplicates' | 'namefix' | 'manual-edit'>('contacts')
   const [searchTerm, setSearchTerm] = useState('')
-  const [sortBy, setSortBy] = useState<'firstName' | 'lastName' | 'source' | 'phones'>('firstName')
+  const [sortBy, setSortBy] = useState<'firstName' | 'lastName' | 'source' | 'phones' | 'suspiciousName'>('firstName')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [duplicateGroups, setDuplicateGroups] = useState<DuplicateGroup[] | null>(null)
   const [cleanupResult, setCleanupResult] = useState<RecommendationCleanupResult | null>(null)
@@ -1959,7 +2111,15 @@ export default function App() {
   const [manualNameFixValues, setManualNameFixValues] = useState<Record<string, string>>({})
   const [selectedNameFixIds, setSelectedNameFixIds] = useState<Set<string>>(new Set())
   const [selectedDuplicateIds, setSelectedDuplicateIds] = useState<Set<string>>(new Set())
+  const [approvedSuspiciousIds, setApprovedSuspiciousIds] = useState<Set<string>>(new Set())
+  const [bulkSpacingOriginalByField, setBulkSpacingOriginalByField] = useState<Record<string, string>>({})
+  const [wordOrderCyclesByField, setWordOrderCyclesByField] = useState<Record<string, {
+    tokenKey: string
+    variants: string[]
+    index: number
+  }>>({})
   const [statusMsg, setStatusMsg] = useState('')
+  const deferredSearchTerm = useDeferredValue(searchTerm)
   const [detectProgress, setDetectProgress] = useState<{ percent: number; stage: string } | null>(null)
   const [importTelemetry, setImportTelemetry] = useState<ImportTelemetry | null>(null)
   const [isDuplicateEditOpen, setIsDuplicateEditOpen] = useState(false)
@@ -1978,6 +2138,9 @@ export default function App() {
   const [conversionDetails, setConversionDetails] = useState<string[]>([])
   const [importFileSummaries, setImportFileSummaries] = useState<ImportFileSummary[]>([])
   const importFileInputRef = useRef<HTMLInputElement | null>(null)
+  const contactsListRef = useRef<HTMLDivElement | null>(null)
+  const [contactsViewportHeight, setContactsViewportHeight] = useState(0)
+  const [contactsScrollTop, setContactsScrollTop] = useState(0)
 
   useEffect(() => {
     const allowedModules = new Set(NAME_FIX_MODULE_OPTIONS.map(option => option.id))
@@ -1995,6 +2158,55 @@ export default function App() {
     () => contacts.find(c => c.id === selectedId) ?? null,
     [contacts, selectedId]
   )
+
+  const suspiciousNameAnalyses = useMemo(
+    () => new Map(contacts.map(contact => [contact.id, analyzeContactNameAnomaly(contact)])),
+    [contacts],
+  )
+
+  const effectiveSuspiciousNameAnalyses = useMemo(() => {
+    const next = new Map(suspiciousNameAnalyses)
+    approvedSuspiciousIds.forEach(id => {
+      const existing = next.get(id)
+      if (!existing || existing.score <= 0) return
+      next.set(id, { score: 0, severity: 0, issueTypes: [] })
+    })
+    return next
+  }, [suspiciousNameAnalyses, approvedSuspiciousIds])
+
+  const suspiciousContactsCount = useMemo(
+    () => [...effectiveSuspiciousNameAnalyses.values()].filter(analysis => analysis.score > 0).length,
+    [effectiveSuspiciousNameAnalyses],
+  )
+
+  const spacingSuggestionByField = useMemo(() => {
+    const map = new Map<string, { suggested: string; confidence: number }>()
+    if (!nameFixSuggestions || nameFixSuggestions.length === 0) return map
+
+    const normalizeSpaces = (v: string) => v.replace(/\s+/g, ' ').trim()
+    const tokenCount = (v: string) => normalizeSpaces(v).split(' ').filter(Boolean).length
+    const compact = (v: string) => normalizeSpaces(v).replace(/\s+/g, '')
+
+    for (const suggestion of nameFixSuggestions) {
+      const original = normalizeSpaces(suggestion.original)
+      const suggested = normalizeSpaces(suggestion.suggested)
+      if (!original || !suggested || original === suggested) continue
+
+      const originalTokens = tokenCount(original)
+      const suggestedTokens = tokenCount(suggested)
+      const isPureSpacingCleanup = originalTokens === suggestedTokens && compact(original) === compact(suggested)
+      const isSpacingSplit = suggestedTokens > originalTokens
+      if (!isPureSpacingCleanup && !isSpacingSplit) continue
+
+      const key = `${suggestion.contactId}:${suggestion.field}`
+      const prev = map.get(key)
+      if (!prev || suggestion.confidence > prev.confidence) {
+        map.set(key, { suggested, confidence: suggestion.confidence })
+      }
+    }
+
+    return map
+  }, [nameFixSuggestions])
 
   const filteredNameFixSuggestions = useMemo(() => {
     if (!nameFixSuggestions) return []
@@ -2072,6 +2284,23 @@ export default function App() {
     [visibleNameFixSuggestions, selectedNameFixIds],
   )
 
+  const contactSearchIndex = useMemo(() => {
+    const index = new Map<string, string>()
+    contacts.forEach(c => {
+      const searchable = [
+        c.name,
+        c.firstName,
+        c.lastName,
+        c.source,
+        ...(c.phones ?? []),
+      ]
+        .join(' ')
+        .toLowerCase()
+      index.set(c.id, searchable)
+    })
+    return index
+  }, [contacts])
+
   useEffect(() => {
     if (!nameFixSuggestions) setManualNameFixValues({})
   }, [nameFixSuggestions])
@@ -2082,23 +2311,64 @@ export default function App() {
 
   const visibleContacts = useMemo(() => {
     let list = contacts
-    if (searchTerm.trim()) {
-      const q = searchTerm.trim().toLowerCase()
-      list = list.filter(c =>
-        c.name.toLowerCase().includes(q) ||
-        c.firstName.toLowerCase().includes(q) ||
-        c.lastName.toLowerCase().includes(q) ||
-        c.phones.some(p => p.includes(q)) ||
-        c.source.toLowerCase().includes(q)
-      )
+    if (deferredSearchTerm.trim()) {
+      const q = deferredSearchTerm.trim().toLowerCase()
+      list = list.filter(c => contactSearchIndex.get(c.id)?.includes(q) ?? false)
     }
     return [...list].sort((a, b) => {
-      let av = '', bv = ''
-      if (sortBy === 'phones') { av = String(a.phones.length).padStart(6, '0'); bv = String(b.phones.length).padStart(6, '0') }
-      else { av = (a[sortBy] || '').toString(); bv = (b[sortBy] || '').toString() }
+      if (sortBy === 'suspiciousName') {
+        const aScore = effectiveSuspiciousNameAnalyses.get(a.id)?.score ?? 0
+        const bScore = effectiveSuspiciousNameAnalyses.get(b.id)?.score ?? 0
+        if (aScore !== bScore) {
+          return sortDir === 'asc' ? aScore - bScore : bScore - aScore
+        }
+
+        const aSeverity = effectiveSuspiciousNameAnalyses.get(a.id)?.severity ?? 0
+        const bSeverity = effectiveSuspiciousNameAnalyses.get(b.id)?.severity ?? 0
+        if (aSeverity !== bSeverity) {
+          return sortDir === 'asc' ? aSeverity - bSeverity : bSeverity - aSeverity
+        }
+
+        const aName = formatNameDisplay(a.firstName, a.lastName) || a.name
+        const bName = formatNameDisplay(b.firstName, b.lastName) || b.name
+        return aName.localeCompare(bName, 'he')
+      }
+
+      let av = ''
+      let bv = ''
+      if (sortBy === 'phones') {
+        av = String(a.phones.length).padStart(6, '0')
+        bv = String(b.phones.length).padStart(6, '0')
+      } else {
+        av = (a[sortBy] || '').toString()
+        bv = (b[sortBy] || '').toString()
+      }
       return sortDir === 'asc' ? av.localeCompare(bv, 'he') : bv.localeCompare(av, 'he')
     })
-  }, [contacts, searchTerm, sortBy, sortDir])
+  }, [contacts, deferredSearchTerm, sortBy, sortDir, effectiveSuspiciousNameAnalyses, contactSearchIndex])
+
+  useEffect(() => {
+    if (activeTab !== 'contacts') return
+    const el = contactsListRef.current
+    if (!el) return
+
+    const measure = () => {
+      setContactsViewportHeight(el.clientHeight)
+    }
+
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [activeTab, isBulkEditMode])
+
+  const virtualRowHeight = isBulkEditMode ? 170 : 134
+  const virtualOverscan = 8
+  const virtualStartIndex = Math.max(0, Math.floor(contactsScrollTop / virtualRowHeight) - virtualOverscan)
+  const virtualVisibleCount = Math.ceil((contactsViewportHeight || 1) / virtualRowHeight) + virtualOverscan * 2
+  const virtualEndIndex = Math.min(visibleContacts.length, virtualStartIndex + virtualVisibleCount)
+  const virtualContacts = visibleContacts.slice(virtualStartIndex, virtualEndIndex)
+  const virtualTotalHeight = visibleContacts.length * virtualRowHeight
 
   const stats = useMemo(() => ({
     total: contacts.length,
@@ -2507,6 +2777,8 @@ export default function App() {
     })
 
     setBulkEditValues(initialValues)
+    setBulkSpacingOriginalByField({})
+    setWordOrderCyclesByField({})
     setIsBulkEditMode(true)
     setStatusMsg('מצב עריכה כללית הופעל')
   }
@@ -2535,17 +2807,163 @@ export default function App() {
 
     setIsBulkEditMode(false)
     setBulkEditValues({})
+    setBulkSpacingOriginalByField({})
+    setWordOrderCyclesByField({})
     setStatusMsg('נשמרו כל השינויים ברשימה')
   }
 
   function cancelBulkEditChanges() {
     setIsBulkEditMode(false)
     setBulkEditValues({})
+    setBulkSpacingOriginalByField({})
+    setWordOrderCyclesByField({})
     setStatusMsg('עריכה כללית בוטלה')
+  }
+
+  function bulkFieldKey(contactId: string, field: 'firstName' | 'lastName'): string {
+    return `${contactId}:${field}`
+  }
+
+  function clearBulkFieldTransientState(contactId: string, field: 'firstName' | 'lastName') {
+    const key = bulkFieldKey(contactId, field)
+    setBulkSpacingOriginalByField(prev => {
+      if (!(key in prev)) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+    setWordOrderCyclesByField(prev => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
+
+  function cycleWordOrder(contactId: string, field: 'firstName' | 'lastName') {
+    const values = bulkEditValues[contactId]
+    if (!values) return
+
+    const currentValue = values[field] ?? ''
+    const words = currentValue.trim().split(/\s+/).filter(Boolean)
+    if (words.length < 2) return
+
+    if (words.length > 7) {
+      const rotated = [...words.slice(1), words[0]].join(' ')
+      setBulkEditValues(prev => ({
+        ...prev,
+        [contactId]: {
+          ...prev[contactId],
+          [field]: rotated,
+        },
+      }))
+      return
+    }
+
+    const key = bulkFieldKey(contactId, field)
+    const normalizedCurrent = words.join(' ')
+    const tokenKey = [...words].sort().join('\u0001')
+    const existing = wordOrderCyclesByField[key]
+
+    let cycle = existing
+    if (!cycle || cycle.tokenKey !== tokenKey || !cycle.variants.includes(normalizedCurrent)) {
+      const variants = buildWordOrderVariants(words, normalizedCurrent)
+      cycle = { tokenKey, variants, index: 0 }
+    } else {
+      cycle = {
+        ...cycle,
+        index: cycle.variants.indexOf(normalizedCurrent),
+      }
+      if (cycle.index < 0) {
+        cycle = {
+          tokenKey,
+          variants: buildWordOrderVariants(words, normalizedCurrent),
+          index: 0,
+        }
+      }
+    }
+
+    const nextIndex = (cycle.index + 1) % cycle.variants.length
+    const nextValue = cycle.variants[nextIndex] ?? normalizedCurrent
+
+    setWordOrderCyclesByField(prev => ({
+      ...prev,
+      [key]: {
+        tokenKey: cycle!.tokenKey,
+        variants: cycle!.variants,
+        index: nextIndex,
+      },
+    }))
+    setBulkEditValues(prev => ({
+      ...prev,
+      [contactId]: {
+        ...prev[contactId],
+        [field]: nextValue,
+      },
+    }))
+  }
+
+  function toggleSpacingSuggestion(contactId: string, field: 'firstName' | 'lastName') {
+    const values = bulkEditValues[contactId]
+    if (!values) return
+
+    const key = bulkFieldKey(contactId, field)
+    const previousOriginal = bulkSpacingOriginalByField[key]
+
+    if (previousOriginal !== undefined) {
+      setBulkSpacingOriginalByField(prev => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+      setBulkEditValues(prev => ({
+        ...prev,
+        [contactId]: {
+          ...prev[contactId],
+          [field]: previousOriginal,
+        },
+      }))
+      clearBulkFieldTransientState(contactId, field)
+      return
+    }
+
+    const currentValue = values[field] ?? ''
+    const suggestion = spacingSuggestionByField.get(key)?.suggested
+    if (!suggestion || suggestion === currentValue) return
+
+    setBulkSpacingOriginalByField(prev => ({ ...prev, [key]: currentValue }))
+    setWordOrderCyclesByField(prev => {
+      if (!prev[key]) return prev
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+    setBulkEditValues(prev => ({
+      ...prev,
+      [contactId]: {
+        ...prev[contactId],
+        [field]: suggestion,
+      },
+    }))
+  }
+
+  function approveAndDismissSuspicious(contactId: string) {
+    setApprovedSuspiciousIds(prev => {
+      const next = new Set(prev)
+      next.add(contactId)
+      return next
+    })
+    setStatusMsg('אושר והוסר מרשימת החשודים')
   }
 
   function deleteContact(id: string) {
     setContacts(prev => prev.filter(c => c.id !== id))
+    setApprovedSuspiciousIds(prev => {
+      if (!prev.has(id)) return prev
+      const next = new Set(prev)
+      next.delete(id)
+      return next
+    })
     setDuplicateGroups(prev => prev?.map(g => ({ ...g, contacts: g.contacts.filter(c => c.id !== id) })).filter(g => g.contacts.length > 1) ?? null)
     setNameFixSuggestions(null)
     setSelectedNameFixIds(new Set())
@@ -2970,7 +3388,7 @@ export default function App() {
       <main className="workspace-grid contacts-grid-single">
         <section className="contacts-list-panel contacts-cards-panel">
           <div className="contacts-header">
-            <h2>אנשי קשר ({visibleContacts.length})</h2>
+            <h2>אנשי קשר ({visibleContacts.length}){suspiciousContactsCount > 0 ? ` · חשודים: ${suspiciousContactsCount}` : ''}</h2>
             <div className="contacts-bulk-actions">
               <button
                 type="button"
@@ -3004,11 +3422,19 @@ export default function App() {
               </button>
             </div>
             <div className="contacts-sort-controls">
-              <select value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}>
+              <select
+                value={sortBy}
+                onChange={e => {
+                  const nextSortBy = e.target.value as typeof sortBy
+                  setSortBy(nextSortBy)
+                  if (nextSortBy === 'suspiciousName') setSortDir('desc')
+                }}
+              >
                 <option value="firstName">שם פרטי</option>
                 <option value="lastName">שם משפחה</option>
                 <option value="source">מקור</option>
                 <option value="phones">מס׳ טלפונים</option>
+                <option value="suspiciousName">שמות חשודים</option>
               </select>
               <select value={sortDir} onChange={e => setSortDir(e.target.value as 'asc' | 'desc')}>
                 <option value="asc">עולה ↑</option>
@@ -3017,73 +3443,144 @@ export default function App() {
             </div>
           </div>
 
-          <div className="contacts-cards-grid">
-            {visibleContacts.map((c, idx) => {
+          <div
+            ref={contactsListRef}
+            className={`contacts-cards-grid${isBulkEditMode ? ' bulk-edit-active' : ''}`}
+            onScroll={e => setContactsScrollTop(e.currentTarget.scrollTop)}
+          >
+            <div className="contacts-cards-virtual-space" style={{ height: Math.max(virtualTotalHeight, contactsViewportHeight) }}>
+            {virtualContacts.map((c, windowIndex) => {
+              const idx = virtualStartIndex + windowIndex
               const bulkValues = bulkEditValues[c.id]
+              const suspiciousAnalysis = effectiveSuspiciousNameAnalyses.get(c.id)
+              const isSuspiciousCandidate = (suspiciousAnalysis?.score ?? 0) > 0
+              const isApprovedSuspicious = approvedSuspiciousIds.has(c.id)
+              const firstNameFieldKey = bulkFieldKey(c.id, 'firstName')
+              const lastNameFieldKey = bulkFieldKey(c.id, 'lastName')
+              const firstNameSpacingSuggested = spacingSuggestionByField.get(firstNameFieldKey)?.suggested
+              const lastNameSpacingSuggested = spacingSuggestionByField.get(lastNameFieldKey)?.suggested
+              const firstNameSpacingApplied = bulkSpacingOriginalByField[firstNameFieldKey] !== undefined
+              const lastNameSpacingApplied = bulkSpacingOriginalByField[lastNameFieldKey] !== undefined
+              const canShowSpacingSuggestion = enabledNameFixModules.has('spacing')
               const displayName = formatNameDisplay(c.firstName, c.lastName) || c.name || '--'
               const phonesSummary = c.phones.length ? c.phones.join(' | ') : '--'
               const emailsSummary = c.emails.length ? c.emails.join(' | ') : '--'
               const hasEmails = c.emails.length > 0
 
               return (
+                <div key={c.id} className="contacts-cards-virtual-row" style={{ top: idx * virtualRowHeight }}>
                 <div
-                  key={c.id}
                   className={`contact-card ${selectedId === c.id ? 'selected' : ''} ${isBulkEditMode ? 'bulk-mode' : ''}`}
                 >
-                  <div className="contact-card-number">#{idx + 1}</div>
                   {isBulkEditMode && bulkValues ? (
-                    <div className="contact-inline-edit-layout">
+                    <>
+                      <div className="contact-card-number">#{idx + 1}</div>
                       <div className="contact-name-edit bulk-edit-name-stack">
-                        <label>
-                          <span>שם פרטי:</span>
+                        <div className="name-fields-wrap">
+                          <div className="name-field-row">
+                            <div className="name-input-wrap">
+                              <input
+                                type="text"
+                                aria-label="שם פרטי"
+                                placeholder="שם פרטי"
+                                value={bulkValues.firstName}
+                                onChange={e => setBulkEditValues(prev => ({
+                                  ...prev,
+                                  [c.id]: { ...prev[c.id], firstName: e.target.value },
+                                }))}
+                                onInput={() => clearBulkFieldTransientState(c.id, 'firstName')}
+                              />
+                              {canShowSpacingSuggestion && (firstNameSpacingApplied || !!firstNameSpacingSuggested) && (
+                                <button
+                                  type="button"
+                                  className="name-field-spacing-btn"
+                                  title={firstNameSpacingApplied ? 'בטל הצעת רווחים' : 'הצע רווחים'}
+                                  onClick={() => toggleSpacingSuggestion(c.id, 'firstName')}
+                                >
+                                  ⎵
+                                </button>
+                              )}
+                              {bulkValues.firstName.trim().split(/\s+/).filter(Boolean).length > 1 && (
+                                <button type="button" className="name-field-rotate-btn" title="סובב סדר מילים בשם הפרטי"
+                                  onClick={() => cycleWordOrder(c.id, 'firstName')}>↻</button>
+                              )}
+                            </div>
+                          </div>
+                          <div className="name-field-row">
+                            <div className="name-input-wrap">
+                              <input
+                                type="text"
+                                aria-label="שם משפחה"
+                                placeholder="שם משפחה"
+                                value={bulkValues.lastName}
+                                onChange={e => setBulkEditValues(prev => ({
+                                  ...prev,
+                                  [c.id]: { ...prev[c.id], lastName: e.target.value },
+                                }))}
+                                onInput={() => clearBulkFieldTransientState(c.id, 'lastName')}
+                              />
+                              {canShowSpacingSuggestion && (lastNameSpacingApplied || !!lastNameSpacingSuggested) && (
+                                <button
+                                  type="button"
+                                  className="name-field-spacing-btn"
+                                  title={lastNameSpacingApplied ? 'בטל הצעת רווחים' : 'הצע רווחים'}
+                                  onClick={() => toggleSpacingSuggestion(c.id, 'lastName')}
+                                >
+                                  ⎵
+                                </button>
+                              )}
+                              {bulkValues.lastName.trim().split(/\s+/).filter(Boolean).length > 1 && (
+                                <button type="button" className="name-field-rotate-btn" title="סובב סדר מילים בשם המשפחה"
+                                  onClick={() => cycleWordOrder(c.id, 'lastName')}>↻</button>
+                              )}
+                            </div>
+                          </div>
+                          <div className="name-micro-actions">
+                            <button type="button" className="name-micro-btn" title="החלף שם פרטי ↔ משפחה"
+                              onClick={() => setBulkEditValues(prev => ({ ...prev, [c.id]: { ...prev[c.id], firstName: bulkValues.lastName, lastName: bulkValues.firstName } }))}>⇄</button>
+                            <button type="button" className="name-micro-btn" title="מזג לשדה אחד"
+                              onClick={() => {
+                                const r = mergeIntoFirstName(bulkValues.firstName, bulkValues.lastName)
+                                setBulkEditValues(prev => ({ ...prev, [c.id]: { ...prev[c.id], ...r } }))
+                              }}>⊞</button>
+                            <button type="button" className="name-micro-btn" title="פצל שם פרטי לשם פרטי + משפחה"
+                              onClick={() => {
+                                const r = splitOffLastName(bulkValues.firstName, bulkValues.lastName)
+                                setBulkEditValues(prev => ({ ...prev, [c.id]: { ...prev[c.id], ...r } }))
+                              }}>⊟</button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="contact-card-details contact-info-grid bulk-edit-details-stack">
+                        <div className="bulk-edit-inline-field phone">
+                          <span>טלפונים:</span>
                           <input
                             type="text"
-                            value={bulkValues.firstName}
+                            value={bulkValues.phonesText}
                             onChange={e => setBulkEditValues(prev => ({
                               ...prev,
-                              [c.id]: { ...prev[c.id], firstName: e.target.value },
+                              [c.id]: { ...prev[c.id], phonesText: e.target.value },
                             }))}
+                            placeholder="מספרים מופרדים בפסיק"
                           />
-                        </label>
-                        <label>
-                          <span>שם משפחה:</span>
+                        </div>
+                        <div className="bulk-edit-inline-field email">
+                          <span>מיילים:</span>
                           <input
                             type="text"
-                            value={bulkValues.lastName}
+                            value={bulkValues.emailsText}
                             onChange={e => setBulkEditValues(prev => ({
                               ...prev,
-                              [c.id]: { ...prev[c.id], lastName: e.target.value },
+                              [c.id]: { ...prev[c.id], emailsText: e.target.value },
                             }))}
+                            placeholder="מיילים מופרדים בפסיק"
                           />
-                        </label>
+                        </div>
                       </div>
-                      <div className="bulk-edit-inline-field phone">
-                        <span>טלפונים:</span>
-                        <textarea
-                          value={bulkValues.phonesText}
-                          onChange={e => setBulkEditValues(prev => ({
-                            ...prev,
-                            [c.id]: { ...prev[c.id], phonesText: e.target.value },
-                          }))}
-                          rows={3}
-                          placeholder="מספר בכל שורה או מופרד בפסיק"
-                        />
-                      </div>
-                      <div className="bulk-edit-inline-field email">
-                        <span>מיילים:</span>
-                        <textarea
-                          value={bulkValues.emailsText}
-                          onChange={e => setBulkEditValues(prev => ({
-                            ...prev,
-                            [c.id]: { ...prev[c.id], emailsText: e.target.value },
-                          }))}
-                          rows={3}
-                          placeholder="מייל בכל שורה או מופרד בפסיק"
-                        />
-                      </div>
-                    </div>
+                    </>
                   ) : (
                     <>
+                      <div className="contact-card-number">#{idx + 1}</div>
                       <div className="contact-card-name">
                         <span className="contact-name-display" onClick={() => setSelectedId(selectedId === c.id ? null : c.id)}>
                           {c.firstName || displayName}
@@ -3106,22 +3603,42 @@ export default function App() {
                       </div>
                     </>
                   )}
-
                   <div className="contact-card-source">
                     <span className="detail-icon">🏷️</span>
                     <span className="detail-text">{c.source || '--'}</span>
                   </div>
 
-                  <button
-                    className="contact-card-delete-btn"
-                    onClick={() => deleteContact(c.id)}
-                    title="מחק"
-                  >
-                    🗑️
-                  </button>
+                  <div className="contact-card-actions">
+                    {sortBy === 'suspiciousName' && (
+                      isApprovedSuspicious ? (
+                        <span className="contact-card-approved-stamp" title="שם מאושר">
+                          ✅
+                        </span>
+                      ) : isSuspiciousCandidate ? (
+                        <button
+                          type="button"
+                          className="contact-card-approve-suspicious-btn"
+                          title="אשר והסר מרשימת החשודים"
+                          onClick={() => approveAndDismissSuspicious(c.id)}
+                        >
+                          V
+                        </button>
+                      ) : null
+                    )}
+
+                    <button
+                      className="contact-card-delete-btn"
+                      onClick={() => deleteContact(c.id)}
+                      title="מחק"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
                 </div>
               )
             })}
+            </div>
           </div>
         </section>
       </main>
@@ -3197,6 +3714,12 @@ export default function App() {
                   hasRomanNumerals: '🏛️ ספרות רומיות',
                   hasSymbols: '⚠️ סימנים',
                   hasSpecialChars: '❗ תווים מיוחדים',
+                  unknownFirstName: '📚 שם פרטי לא מוכר',
+                  unknownLastName: '📚 שם משפחה לא מוכר',
+                  hasLongToken: '📏 מילה ארוכה מדי',
+                  hasMixedScripts: '🔀 ערבוב עברית/אנגלית',
+                  hasRepeatedChars: '🔁 חזרות תווים',
+                  looksGluedWords: '🧩 מילים שנדבקו',
                 }
 
                 return (
@@ -3591,13 +4114,9 @@ export default function App() {
               <button className="modal-close" onClick={closeDownloadModal}>✕</button>
             </div>
             <div className="modal-body">
-              <p className="download-modal-intro">בחר איך אתה רוצה להמשיך: הורדה למחשב, גרסה ניידת, קוד מקור או כניסה לעריכת הקוד ב־GitHub.</p>
+              <p className="download-modal-intro">כרגע מופצת גרסה ניידת בלבד. אפשר להוריד, לצפות בקוד או להיכנס ישירות לעמוד הפרויקט ב־GitHub.</p>
               <div className="download-options-grid">
-                <a className="download-option-card primary" href={GITHUB_INSTALLER_URL} target="_blank" rel="noreferrer">
-                  <strong>הורד EXE</strong>
-                  <span>מתקין מלא ל־Windows</span>
-                </a>
-                <a className="download-option-card" href={GITHUB_PORTABLE_URL} target="_blank" rel="noreferrer">
+                <a className="download-option-card primary" href={GITHUB_PORTABLE_URL} target="_blank" rel="noreferrer">
                   <strong>גרסה ניידת</strong>
                   <span>קובץ EXE נייד, ללא התקנה</span>
                 </a>
