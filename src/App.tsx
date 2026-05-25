@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useDeferredValue } from 'react'
+import * as XLSX from 'xlsx'
 import './App.css'
 
 /* ── Types ─────────────────────────────────────────────── */
@@ -157,7 +158,41 @@ function starsLabel(stars: number): string {
   return `${'★'.repeat(stars)}${'☆'.repeat(Math.max(0, 5 - stars))}`
 }
 
-const COMMON_HE_FIRST_NAMES = new Set([
+// Load names from external file
+async function loadHebrewNames(): Promise<{ allWords: Set<string> }> {
+  try {
+    // Start with fallback names - combine both first and last names into one dictionary
+    const allWords = new Set([...FALLBACK_HE_FIRST_NAMES, ...FALLBACK_HE_LAST_NAMES])
+    
+    // Try to load from public folder and add to existing set
+    const response = await fetch('/hebrew-first-names.txt')
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+    const text = await response.text()
+    const lines = text.split('\n').map(line => line.trim()).filter(Boolean)
+    
+    for (const line of lines) {
+      // Skip section headers
+      if (line === 'שמות פרטיים' || line === 'שמות משפחה') {
+        continue
+      }
+      
+      // Add all words to the unified dictionary
+      allWords.add(line)
+    }
+    
+    console.log(`Successfully loaded ${allWords.size} words in unified dictionary`)
+    return { allWords }
+  } catch (error) {
+    console.warn('Could not load Hebrew names file, using fallback names only:', error)
+    return { 
+      allWords: new Set([...FALLBACK_HE_FIRST_NAMES, ...FALLBACK_HE_LAST_NAMES])
+    }
+  }
+}
+
+const FALLBACK_HE_FIRST_NAMES = [
   'אהרון', 'אהובה', 'אבי', 'אביעד', 'אביעזר', 'אביגדור', 'אביגיל', 'אביטל', 'אברהם', 'אדם', 'אדל', 'אדר',
   'אודי', 'אודליה', 'אוהד', 'אופיר', 'אור', 'אורה', 'אוראל', 'אורטל', 'אוריה', 'אורית',
   'אורלי', 'אורן', 'אושרי', 'איל', 'אילן', 'אילנה', 'איתן', 'איתי', 'אלון', 'אלונה',
@@ -180,8 +215,9 @@ const COMMON_HE_FIRST_NAMES = new Set([
   'רונה', 'רוני', 'רונית', 'רחל', 'רינה', 'רם', 'שגב', 'שולה', 'שחר', 'שי',
   'שילה', 'שיר', 'שירה', 'שלמה', 'שמואל', 'שני', 'שרה', 'תאיר', 'תהל', 'תהילה',
   'תומר', 'תמר', 'תמיר',
-])
-const COMMON_HE_LAST_NAMES = new Set([
+]
+
+const FALLBACK_HE_LAST_NAMES = [
   'אבוטבול', 'אביכזר', 'אביטל', 'אביסרור', 'אבישר', 'אבני', 'אבקסיס', 'אבקסיס', 'אדרי', 'אוזן',
   'אוחיון', 'אוחנה', 'אוחנונה', 'אוחנה', 'אייזנברג', 'אילוז', 'אלבז', 'אלון', 'אלחדד', 'אלחרר',
   'אליאס', 'אלימלך', 'אלישע', 'אלמוג', 'אלמקייס', 'אמסלם', 'אנקונינה', 'אסולין', 'אסייג', 'אזולאי',
@@ -201,7 +237,10 @@ const COMMON_HE_LAST_NAMES = new Set([
   'צוריה', 'קופל', 'קורן', 'קטן', 'קרן', 'קרני', 'ראובן', 'רבינוביץ', 'רגב', 'רוזן', 'רוזנברג',
   'רוזנפלד', 'רומנו', 'רון', 'רפאל', 'רפאלי', 'שבח', 'שגב', 'שוחט', 'שטרית', 'שילה',
   'שיטרית', 'שמחון', 'שמעוני', 'שמש', 'שרעבי', 'תורגמן', 'תמיר',
-])
+]
+
+// Initialize with loaded names
+let HEBREW_WORDS_DICTIONARY = new Set([...FALLBACK_HE_FIRST_NAMES, ...FALLBACK_HE_LAST_NAMES])
 
 // Supplemental lexicon to broaden coverage beyond the core built-in list.
 const EXTRA_HE_FIRST_NAMES = [
@@ -255,8 +294,8 @@ const EXTRA_HE_LAST_NAMES = [
   'שרביט', 'שרון', 'תבור', 'תדמור', 'תורן', 'תמירי',
 ]
 
-EXTRA_HE_FIRST_NAMES.forEach(name => COMMON_HE_FIRST_NAMES.add(name))
-EXTRA_HE_LAST_NAMES.forEach(name => COMMON_HE_LAST_NAMES.add(name))
+EXTRA_HE_FIRST_NAMES.forEach(name => HEBREW_WORDS_DICTIONARY.add(name))
+EXTRA_HE_LAST_NAMES.forEach(name => HEBREW_WORDS_DICTIONARY.add(name))
 /* ── Pure helpers ───────────────────────────────────────── */
 function uid() {
   return Math.random().toString(36).slice(2, 9) + Date.now().toString(36)
@@ -1442,6 +1481,68 @@ function exportVcf(contacts: Contact[]) {
   download(buildVcfContent(contacts), 'contacts.vcf', 'text/vcard;charset=utf-8')
 }
 
+function exportExcel(contacts: Contact[]) {
+  const rows = contacts.map(c => ({
+    'שם פרטי': c.firstName,
+    'שם משפחה': c.lastName,
+    'שם מלא': c.name,
+    'טלפונים': c.phones.join(', '),
+    'אימיילים': c.emails.join(', '),
+    'הערות': c.notes ?? '',
+    'מקור': c.source,
+  }))
+  const ws = XLSX.utils.json_to_sheet(rows)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'אנשי קשר')
+  XLSX.writeFile(wb, 'contacts.xlsx')
+}
+
+function parseExcelContacts(buffer: ArrayBuffer, source: string): Contact[] {
+  try {
+    const wb = XLSX.read(buffer, { type: 'array' })
+    const ws = wb.Sheets[wb.SheetNames[0]]
+    const rows = XLSX.utils.sheet_to_json<Record<string, string>>(ws, { defval: '' })
+
+    const contacts: Contact[] = []
+    for (const row of rows) {
+      const firstName = String(row['שם פרטי'] ?? row['first name'] ?? row['firstName'] ?? row['First Name'] ?? '').trim()
+      const lastName = String(row['שם משפחה'] ?? row['last name'] ?? row['lastName'] ?? row['Last Name'] ?? '').trim()
+      const fullName = String(row['שם מלא'] ?? row['full name'] ?? row['fullName'] ?? row['Full Name'] ?? row['name'] ?? row['Name'] ?? '').trim()
+      const phonesRaw = String(row['טלפונים'] ?? row['phones'] ?? row['Phones'] ?? row['phone'] ?? row['Phone'] ?? row['טלפון'] ?? '').trim()
+      const emailsRaw = String(row['אימיילים'] ?? row['emails'] ?? row['Emails'] ?? row['email'] ?? row['Email'] ?? row['אימייל'] ?? '').trim()
+      const notes = String(row['הערות'] ?? row['notes'] ?? row['Notes'] ?? '').trim()
+
+      const phones = phonesRaw.split(/[,;|\n]+/).map(p => p.trim()).filter(Boolean)
+      const emails = emailsRaw.split(/[,;|\n]+/).map(e => e.trim()).filter(Boolean)
+
+      let fn = firstName
+      let ln = lastName
+      if (!fn && !ln && fullName) {
+        const parts = fullName.trim().split(/\s+/)
+        fn = parts[0] ?? ''
+        ln = parts.slice(1).join(' ')
+      }
+
+      const name = fullName || [fn, ln].filter(Boolean).join(' ')
+      if (!name && phones.length === 0 && emails.length === 0) continue
+
+      contacts.push({
+        id: `xl-${source}-${contacts.length}`,
+        name,
+        firstName: fn,
+        lastName: ln,
+        phones,
+        emails,
+        notes: notes || undefined,
+        source,
+      })
+    }
+    return contacts
+  } catch {
+    return []
+  }
+}
+
 function scoreContact(c: Contact): number {
   return c.phones.length * 3 + c.emails.length * 2 +
     (c.firstName ? 1 : 0) + (c.lastName ? 1 : 0) + (c.notes ? 1 : 0)
@@ -1462,6 +1563,8 @@ function formatNameDisplay(firstName: string, lastName: string): string {
   if (!fn && !ln) return ''
   if (!fn) return ln
   if (!ln) return fn
+  // Avoid duplicate display if firstName and lastName are the same
+  if (fn === ln) return fn
   return `${fn} ${ln}`
 }
 
@@ -1480,7 +1583,7 @@ function splitNameTokensForAnalysis(value: string): string[] {
 }
 
 function tokenExistsInAnyNameDictionary(token: string): boolean {
-  return COMMON_HE_FIRST_NAMES.has(token) || COMMON_HE_LAST_NAMES.has(token)
+  return HEBREW_WORDS_DICTIONARY.has(token)
 }
 
 function hasLikelyDictionarySplit(token: string): boolean {
@@ -1534,7 +1637,6 @@ function analyzeContactNameAnomaly(contact: Contact): NameAnomalyAnalysis {
     const tokens = splitNameTokensForAnalysis(value)
     const letterTokens = tokens.filter(token => /^[A-Za-z\u0590-\u05FF'׳״]+$/u.test(token))
     const hebrewTokens = letterTokens.filter(token => /[א-ת]/.test(token) && token.length >= 2)
-    const dictionary = field === 'firstName' ? COMMON_HE_FIRST_NAMES : COMMON_HE_LAST_NAMES
 
     if (/\d/.test(value)) issueTypes.add('hasDigits')
     if (/\s{2,}/.test(value)) issueTypes.add('hasExtraSpaces')
@@ -1557,7 +1659,7 @@ function analyzeContactNameAnomaly(contact: Contact): NameAnomalyAnalysis {
       hebrewTokens.length === 1 &&
       !value.includes(' ') &&
       hebrewTokens[0].length >= 8 &&
-      !dictionary.has(hebrewTokens[0])
+      !HEBREW_WORDS_DICTIONARY.has(hebrewTokens[0])
 
     if (shouldFlagUnknownField) {
       issueTypes.add(field === 'firstName' ? 'unknownFirstName' : 'unknownLastName')
@@ -1591,8 +1693,7 @@ function nameQualityScore(c: Contact): number {
   else if (tokens.length === 1) score += 4
 
   for (const token of tokens) {
-    if (COMMON_HE_FIRST_NAMES.has(token)) score += 7
-    if (COMMON_HE_LAST_NAMES.has(token)) score += 7
+    if (HEBREW_WORDS_DICTIONARY.has(token)) score += 7
     if (isTokenWeird(token)) score -= 8
     if (/\d/.test(token)) score -= 8
   }
@@ -1669,28 +1770,7 @@ function compactNameForMatch(value: string): string {
   return normalizeNameForMatch(value).replace(/\s+/g, '')
 }
 
-function levenshteinDistance(a: string, b: string): number {
-  if (a === b) return 0
-  if (!a.length) return b.length
-  if (!b.length) return a.length
 
-  const dp = Array.from({ length: a.length + 1 }, () => Array<number>(b.length + 1).fill(0))
-  for (let i = 0; i <= a.length; i++) dp[i][0] = i
-  for (let j = 0; j <= b.length; j++) dp[0][j] = j
-
-  for (let i = 1; i <= a.length; i++) {
-    for (let j = 1; j <= b.length; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,
-        dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + cost,
-      )
-    }
-  }
-
-  return dp[a.length][b.length]
-}
 
 function areLikelySameName(a: Contact, b: Contact): boolean {
   const nameA = compactNameForMatch([a.firstName, a.lastName].filter(Boolean).join(' ') || a.name)
@@ -1701,8 +1781,26 @@ function areLikelySameName(a: Contact, b: Contact): boolean {
   const minLen = Math.min(nameA.length, nameB.length)
   if (minLen < 4) return false
 
-  const distance = levenshteinDistance(nameA, nameB)
-  return distance <= 1 || (distance <= 2 && minLen >= 7)
+  // Much more conservative similarity check
+  // Only consider names similar if they are very close
+  const maxLen = Math.max(nameA.length, nameB.length)
+  const lengthDiff = Math.abs(nameA.length - nameB.length)
+  
+  // If length difference is too big, not similar
+  if (lengthDiff > 2) return false
+  
+  // Check for exact substring match (one name contained in the other)
+  if (nameA.includes(nameB) || nameB.includes(nameA)) {
+    // Only if the contained name is at least 80% of the container
+    const shorter = Math.min(nameA.length, nameB.length)
+    const longer = Math.max(nameA.length, nameB.length)
+    return (shorter / longer) >= 0.8
+  }
+  
+  // For very short names, be extra strict
+  if (minLen < 6) return false
+  
+  return false
 }
 
 function analyzeNamesForManualEdit(contacts: Contact[]): ManualEditIssue[] {
@@ -1907,15 +2005,16 @@ function suggestNameFixes(contacts: Contact[]): NameFixSuggestion[] {
   })
 
   const splitByDictionary = (
-    field: 'firstName' | 'lastName',
     value: string,
   ): Array<{ text: string; confidence: number; reason: string; module: NameFixModule }> => {
     const raw = compact(value)
+    const normalized = normalizeSpaces(value)
     if (raw.length < 4) return []
-    const rawIsKnownWhole = field === 'firstName'
-      ? COMMON_HE_FIRST_NAMES.has(raw)
-      : COMMON_HE_LAST_NAMES.has(raw)
-    if (rawIsKnownWhole) return []
+    
+    // Check if the whole name exists in the dictionary - if so, don't split it
+    if (HEBREW_WORDS_DICTIONARY.has(raw) || HEBREW_WORDS_DICTIONARY.has(normalized)) {
+      return []
+    }
 
     const matches: Array<{
       text: string
@@ -1925,48 +2024,55 @@ function suggestNameFixes(contacts: Contact[]): NameFixSuggestion[] {
       kind: 'strict' | 'vocab' | 'oneKnown'
       knownToken: string
       module: NameFixModule
+      longestKnownLength: number
     }> = []
+    
     for (let i = 2; i <= raw.length - 2; i++) {
       const left = raw.slice(0, i)
       const right = raw.slice(i)
 
-      const leftIsFirst = COMMON_HE_FIRST_NAMES.has(left)
-      const rightIsFirst = COMMON_HE_FIRST_NAMES.has(right)
-      const leftIsLast = COMMON_HE_LAST_NAMES.has(left)
-      const rightIsLast = COMMON_HE_LAST_NAMES.has(right)
+      const leftIsKnown = HEBREW_WORDS_DICTIONARY.has(left)
+      const rightIsKnown = HEBREW_WORDS_DICTIONARY.has(right)
 
-      const firstLast = leftIsFirst && rightIsLast
-      const lastFirst = leftIsLast && rightIsFirst
-      const firstFirst = field === 'firstName' && leftIsFirst && rightIsFirst
-      const lastLast = field === 'lastName' && leftIsLast && rightIsLast
+      const bothKnown = leftIsKnown && rightIsKnown
+      const oneKnown = leftIsKnown || rightIsKnown
       const vocabSplit = (vocabularyCounts.get(left) ?? 0) >= 2 && (vocabularyCounts.get(right) ?? 0) >= 2
 
-      if (firstLast || lastFirst || firstFirst || lastLast || vocabSplit) {
+      if (bothKnown || oneKnown || vocabSplit) {
         const knownToken = ''
-        const confidence = firstLast
+        
+        // Calculate longest known part length for prioritization
+        let longestKnownLength = 0
+        if (leftIsKnown) longestKnownLength = Math.max(longestKnownLength, left.length)
+        if (rightIsKnown) longestKnownLength = Math.max(longestKnownLength, right.length)
+        
+        // Higher confidence for splits with longer known parts
+        let confidence = bothKnown
           ? 0.99
-          : lastFirst
-            ? 0.97
-            : (firstFirst || lastLast)
-              ? 0.93
-              : 0.84
+          : oneKnown
+            ? 0.95
+            : 0.84
+              
+        // Boost confidence based on longest known part length
+        confidence += (longestKnownLength / raw.length) * 0.1
+        
         const leftCount = vocabularyCounts.get(left) ?? 0
         const rightCount = vocabularyCounts.get(right) ?? 0
-        const reason = (firstLast || lastFirst)
+        const reason = bothKnown
           ? 'הפרדת שם מחובר לפי מילון'
-          : (firstFirst || lastLast)
-            ? 'הפרדת שם מחובר לפי מילון שמות'
+          : oneKnown
+            ? 'הפרדת שם מחובר לפי מילון (חלק אחד מוכר)'
             : `הפרדת שם מחובר לפי שימוש חוזר בשדות שם ברשימה: ${left} (${leftCount}), ${right} (${rightCount})`
-        const module: NameFixModule = (firstLast || lastFirst)
+        const module: NameFixModule = (bothKnown || oneKnown)
           ? 'dictionary'
-          : (firstFirst || lastLast)
-            ? 'dictionaryNames'
-            : 'vocabulary'
-        const rank = 0
-        const kind: 'strict' | 'vocab' | 'oneKnown' = (firstLast || lastFirst || firstFirst || lastLast)
+          : 'vocabulary'
+        const rank = longestKnownLength // Use longest known length as rank
+        const kind: 'strict' | 'vocab' | 'oneKnown' = bothKnown
           ? 'strict'
-          : 'vocab'
-        matches.push({ text: `${left} ${right}`, confidence, reason, rank, kind, knownToken, module })
+          : oneKnown
+            ? 'oneKnown'
+            : 'vocab'
+        matches.push({ text: `${left} ${right}`, confidence, reason, rank, kind, knownToken, module, longestKnownLength })
       }
     }
 
@@ -1980,15 +2086,24 @@ function suggestNameFixes(contacts: Contact[]): NameFixSuggestion[] {
       kind: 'strict' | 'vocab' | 'oneKnown'
       knownToken: string
       module: NameFixModule
+      longestKnownLength: number
     }>()
     matches.forEach(match => {
       const prev = deduped.get(match.text)
-      if (!prev || match.confidence > prev.confidence || (match.confidence === prev.confidence && match.rank > prev.rank)) {
+      if (!prev || 
+          match.longestKnownLength > prev.longestKnownLength || // Prioritize longer known parts
+          (match.longestKnownLength === prev.longestKnownLength && match.confidence > prev.confidence) ||
+          (match.longestKnownLength === prev.longestKnownLength && match.confidence === prev.confidence && match.rank > prev.rank)) {
         deduped.set(match.text, match)
       }
     })
 
-    const all = [...deduped.values()].sort((a, b) => b.confidence - a.confidence || b.rank - a.rank)
+    // Sort by longest known length first, then confidence, then rank
+    const all = [...deduped.values()].sort((a, b) => 
+      b.longestKnownLength - a.longestKnownLength || 
+      b.confidence - a.confidence || 
+      b.rank - a.rank
+    )
     const primary = all.filter(m => m.kind !== 'oneKnown')
     const oneKnown = all.filter(m => m.kind === 'oneKnown')
 
@@ -2002,7 +2117,11 @@ function suggestNameFixes(contacts: Contact[]): NameFixSuggestion[] {
     }
 
     return [...primary, ...chosenOneKnown]
-      .sort((a, b) => b.confidence - a.confidence || b.rank - a.rank)
+      .sort((a, b) => 
+        b.longestKnownLength - a.longestKnownLength || 
+        b.confidence - a.confidence || 
+        b.rank - a.rank
+      )
       .slice(0, 4)
       .map(match => ({ text: match.text, confidence: match.confidence, reason: match.reason, module: match.module }))
   }
@@ -2021,25 +2140,70 @@ function suggestNameFixes(contacts: Contact[]): NameFixSuggestion[] {
         candidates.push({ suggested: spacing, reason: 'רווחים מיותרים', confidence: 1, module: 'spacing' })
       }
 
-      const spacingTokens = spacing.split(' ').filter(Boolean)
-      spacingTokens.forEach((token, tokenIndex) => {
-        const splitCandidates = splitByDictionary(field, token)
-        splitCandidates.forEach(splitCandidate => {
-          const rebuiltTokens = [...spacingTokens]
-          rebuiltTokens[tokenIndex] = splitCandidate.text
-          const rebuilt = rebuiltTokens.join(' ')
-          if (rebuilt !== original) {
-            candidates.push({ suggested: rebuilt, reason: splitCandidate.reason, confidence: splitCandidate.confidence, module: splitCandidate.module })
+      // Check if the whole name (after spacing normalization) exists in the dictionary
+      const spacingCompact = compact(spacing)
+      const wholeNameExists = HEBREW_WORDS_DICTIONARY.has(spacingCompact) || HEBREW_WORDS_DICTIONARY.has(spacing)
+      
+      // Debug logging for problematic names
+      if (spacingCompact === 'שניאור' || spacingCompact === 'אבידן' || spacing === 'שניאור' || spacing === 'אבידן') {
+        console.log(`DEBUG: Checking name "${original}" -> spacing: "${spacing}" -> compact: "${spacingCompact}"`)
+        console.log(`Dictionary has compact: ${HEBREW_WORDS_DICTIONARY.has(spacingCompact)}, Dictionary has spacing: ${HEBREW_WORDS_DICTIONARY.has(spacing)}`)
+        console.log(`Dictionary size: ${HEBREW_WORDS_DICTIONARY.size}`)
+        console.log(`wholeNameExists: ${wholeNameExists}`)
+      }
+      
+      // Only suggest splits if the whole name doesn't exist in dictionary
+      if (!wholeNameExists) {
+        const spacingTokens = spacing.split(' ').filter(Boolean)
+        spacingTokens.forEach((token, tokenIndex) => {
+          // Skip splitting tokens that already exist in the dictionary
+          const tokenCompact = compact(token)
+          const tokenExists = HEBREW_WORDS_DICTIONARY.has(tokenCompact) || HEBREW_WORDS_DICTIONARY.has(token)
+          
+          if (!tokenExists) {
+            const splitCandidates = splitByDictionary(token)
+            splitCandidates.forEach(splitCandidate => {
+              const rebuiltTokens = [...spacingTokens]
+              rebuiltTokens[tokenIndex] = splitCandidate.text
+              const rebuilt = rebuiltTokens.join(' ')
+              if (rebuilt !== original) {
+                candidates.push({ suggested: rebuilt, reason: splitCandidate.reason, confidence: splitCandidate.confidence, module: splitCandidate.module })
+              }
+            })
           }
         })
-      })
+      }
+
+
 
       if (candidates.length === 0) continue
+      
+      // Debug logging for all candidates
+      if (original.includes('DEBUG_NAME_THAT_WILL_NEVER_EXIST')) {
+        console.log(`=== PROCESSING "${original}" (field: ${field}) ===`)
+        console.log(`Candidates found: ${candidates.length}`)
+        candidates.forEach((candidate, index) => {
+          console.log(`Candidate ${index + 1}: "${candidate.suggested}" (module: ${candidate.module}, reason: ${candidate.reason})`)
+        })
+        console.log(`=== END PROCESSING ===`)
+      }
+      
       const uniqueCandidates = new Map<string, { suggested: string; reason: string; confidence: number; module: NameFixModule }>()
       candidates.forEach(candidate => {
         const normalizedSuggested = normalizeSpaces(candidate.suggested)
         if (!normalizedSuggested || normalizedSuggested === original) return
         if (tokenCount(normalizedSuggested) < originalTokenCount) return
+        
+        // Debug logging for problematic names
+        if (original.includes('DEBUG_NAME_THAT_WILL_NEVER_EXIST')) {
+          console.log(`=== CANDIDATE DEBUG for "${original}" ===`)
+          console.log(`Module: ${candidate.module}`)
+          console.log(`Suggested: "${candidate.suggested}"`)
+          console.log(`Reason: ${candidate.reason}`)
+          console.log(`Confidence: ${candidate.confidence}`)
+          console.log(`=== END DEBUG ===`)
+        }
+        
         const prev = uniqueCandidates.get(normalizedSuggested)
         if (!prev || candidate.confidence > prev.confidence) {
           uniqueCandidates.set(normalizedSuggested, {
@@ -2073,6 +2237,28 @@ function suggestNameFixes(contacts: Contact[]): NameFixSuggestion[] {
 
 /* ── App ────────────────────────────────────────────────── */
 export default function App() {
+  // Load Hebrew names on app start
+  useEffect(() => {
+    console.log('Starting to load Hebrew names...')
+    loadHebrewNames().then(({ allWords }) => {
+      HEBREW_WORDS_DICTIONARY = allWords
+      console.log(`Successfully loaded ${allWords.size} words in unified dictionary`)
+      
+      // Debug: Check if specific names exist
+      console.log(`אביגיל exists: ${allWords.has('אביגיל')}`)
+      console.log(`שניאור exists: ${allWords.has('שניאור')}`)
+      console.log(`אבידן exists: ${allWords.has('אבידן')}`)
+      console.log(`גלזמן exists: ${allWords.has('גלזמן')}`)
+      
+      // Show first few names for debugging
+      const firstFew = Array.from(allWords).slice(0, 10)
+      console.log('First few words:', firstFew)
+      
+    }).catch(error => {
+      console.error('Failed to load Hebrew names:', error)
+    })
+  }, [])
+
   const [contacts, setContacts] = useState<Contact[]>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY)
@@ -2096,7 +2282,7 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [isBulkEditMode, setIsBulkEditMode] = useState(false)
   const [bulkEditValues, setBulkEditValues] = useState<Record<string, BulkEditContactValues>>({})
-  const [activeTab, setActiveTab] = useState<'contacts' | 'duplicates' | 'namefix' | 'manual-edit'>('contacts')
+  const [activeTab, setActiveTab] = useState<'contacts' | 'duplicates' | 'namefix' | 'manual-edit' | 'deleted'>('contacts')
   const [searchTerm, setSearchTerm] = useState('')
   const [sortBy, setSortBy] = useState<'firstName' | 'lastName' | 'source' | 'phones' | 'suspiciousName'>('firstName')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
@@ -2130,6 +2316,19 @@ export default function App() {
   const [dictionaryInput, setDictionaryInput] = useState('')
   const [dictionaryType, setDictionaryType] = useState<'first' | 'last'>('first')
   const [duplicatesDeletedTotal, setDuplicatesDeletedTotal] = useState(0)
+  const [deletedContacts, setDeletedContacts] = useState<Array<{
+    contact: Contact
+    deletedAt: string
+    reason: 'duplicate' | 'manual'
+    relatedContacts?: Contact[]
+  }>>(() => {
+    try {
+      const saved = localStorage.getItem('deleted-contacts-v1')
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  })
   const [isConversionModalOpen, setIsConversionModalOpen] = useState(false)
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false)
   const [conversionStage, setConversionStage] = useState<'confirm' | 'processing' | 'ready' | 'failed'>('confirm')
@@ -2141,6 +2340,15 @@ export default function App() {
   const contactsListRef = useRef<HTMLDivElement | null>(null)
   const [contactsViewportHeight, setContactsViewportHeight] = useState(0)
   const [contactsScrollTop, setContactsScrollTop] = useState(0)
+
+  // Auto-run name fix analysis when switching to namefix tab
+  useEffect(() => {
+    if (activeTab === 'namefix' && !nameFixSuggestions) {
+      console.log('Auto-running name fix analysis...')
+      const fixes = suggestNameFixes(contacts)
+      setNameFixSuggestions(fixes.length ? fixes : null)
+    }
+  }, [activeTab, contacts, nameFixSuggestions])
 
   useEffect(() => {
     const allowedModules = new Set(NAME_FIX_MODULE_OPTIONS.map(option => option.id))
@@ -2398,8 +2606,8 @@ export default function App() {
     for (const file of picked) {
       try {
         const ext = fileExt(file.name)
-        if (!['vcf', 'ib', 'in'].includes(ext)) {
-          pushDetail(`דולג על ${file.name} (נתמכים רק VCF ו-IB)`)
+        if (!['vcf', 'ib', 'in', 'xlsx'].includes(ext)) {
+          pushDetail(`דולג על ${file.name} (נתמכים VCF, IB ו-Excel)`)
           continue
         }
 
@@ -2413,6 +2621,24 @@ export default function App() {
 
         pushDetail(`קורא: ${file.name}`)
         const buf = await file.arrayBuffer()
+
+        if (ext === 'xlsx') {
+          const xlContacts = parseExcelContacts(buf, file.name)
+          onFileParsed?.({
+            name: file.name,
+            contacts: xlContacts.length,
+            details: `Excel (${xlContacts.length} שורות)`,
+          })
+          if (xlContacts.length > 0) {
+            allNew.push(...xlContacts)
+            importedFiles++
+            pushDetail(`נקלט: ${file.name} | אנשי קשר: ${xlContacts.length} | זיהוי: Excel`)
+          } else {
+            pushDetail(`לא זוהו אנשי קשר: ${file.name}`)
+          }
+          continue
+        }
+
         const parsedAny = parseContactsFromAnyBuffer(buf, file.name)
         onFileParsed?.({
           name: file.name,
@@ -2503,10 +2729,10 @@ export default function App() {
   function handleUploadSelection(files: FileList | File[] | null) {
     if (!files || files.length === 0) return
     const picked = Array.from(files)
-    const supported = picked.filter(file => ['vcf', 'ib'].includes(fileExt(file.name)))
+    const supported = picked.filter(file => ['vcf', 'ib', 'xlsx'].includes(fileExt(file.name)))
 
     if (supported.length !== picked.length) {
-      setStatusMsg('ניתן לייבא רק קבצי VCF או IB')
+      setStatusMsg('ניתן לייבא רק קבצי VCF, IB או Excel (xlsx)')
     }
 
     if (supported.length === 0) return
@@ -2580,26 +2806,11 @@ export default function App() {
       return
     }
 
-    if (dictionaryType === 'first') {
-      COMMON_HE_FIRST_NAMES.add(trimmed)
-    } else {
-      COMMON_HE_LAST_NAMES.add(trimmed)
-    }
+    HEBREW_WORDS_DICTIONARY.add(trimmed)
 
     setStatusMsg(`נוסף למילון: "${trimmed}" (${dictionaryType === 'first' ? 'שם פרטי' : 'שם משפחה'})`)
     setDictionaryInput('')
     setIsDictionaryModalOpen(false)
-  }
-
-  function handleNameFix() {
-    setActiveTab('namefix')
-    const fixes = suggestNameFixes(contacts)
-    setNameFixSuggestions(fixes.length ? fixes : null)
-    setSelectedNameFixIds(buildPreferredNameFixSelection(
-      fixes.filter(f => enabledNameFixModules.has(f.module) && (nameFixMinStars === 0 || confidenceToStars(f.confidence) >= nameFixMinStars)),
-    ))
-    setManualNameFixValues({})
-    setStatusMsg(fixes.length ? `נמצאו ${fixes.length} תיקוני שמות` : 'אין תיקונים נדרשים')
   }
 
   function toggleNameFixModule(module: NameFixModule) {
@@ -2956,7 +3167,24 @@ export default function App() {
     setStatusMsg('אושר והוסר מרשימת החשודים')
   }
 
-  function deleteContact(id: string) {
+  function deleteContact(id: string, reason: 'duplicate' | 'manual' = 'manual', relatedContacts?: Contact[]) {
+    const contactToDelete = contacts.find(c => c.id === id)
+    if (!contactToDelete) return
+
+    // Add to deleted contacts
+    const deletedEntry = {
+      contact: contactToDelete,
+      deletedAt: new Date().toISOString(),
+      reason,
+      relatedContacts
+    }
+    
+    setDeletedContacts(prev => {
+      const updated = [...prev, deletedEntry]
+      localStorage.setItem('deleted-contacts-v1', JSON.stringify(updated))
+      return updated
+    })
+
     setContacts(prev => prev.filter(c => c.id !== id))
     setApprovedSuspiciousIds(prev => {
       if (!prev.has(id)) return prev
@@ -2974,6 +3202,29 @@ export default function App() {
     })
     if (selectedId === id) setSelectedId(null)
     setStatusMsg('נמחק')
+  }
+
+  function restoreDeletedContact(index: number) {
+    const deletedEntry = deletedContacts[index]
+    if (!deletedEntry) return
+
+    // Add back to contacts
+    setContacts(prev => [...prev, deletedEntry.contact])
+    
+    // Remove from deleted
+    setDeletedContacts(prev => {
+      const updated = prev.filter((_, i) => i !== index)
+      localStorage.setItem('deleted-contacts-v1', JSON.stringify(updated))
+      return updated
+    })
+    
+    setStatusMsg('שוחזר')
+  }
+
+  function clearAllDeleted() {
+    setDeletedContacts([])
+    localStorage.removeItem('deleted-contacts-v1')
+    setStatusMsg('סל המחזור רוקן')
   }
 
   function toggleDuplicateSelection(contactId: string) {
@@ -3045,19 +3296,48 @@ export default function App() {
     })
 
     if (toDelete.size === 0) return
-    setContacts(prev => prev.filter(c => !toDelete.has(c.id)))
-    setDuplicateGroups(prev => prev
-      ?.map(g => ({ ...g, contacts: g.contacts.filter(c => !toDelete.has(c.id)) }))
-      .filter(g => g.contacts.length > 1) ?? null)
-    setNameFixSuggestions(null)
-    setSelectedNameFixIds(new Set())
-    setSelectedDuplicateIds(prev => {
-      const next = new Set(prev)
-      toDelete.forEach(id => next.delete(id))
-      return next
+    
+    // Save deleted contacts with related info
+    const relatedContacts = group.contacts.filter(c => selected.has(c.id))
+    toDelete.forEach(id => {
+      deleteContact(id, 'duplicate', relatedContacts)
     })
+    
     setDuplicatesDeletedTotal(prev => prev + toDelete.size)
     setStatusMsg(`נמחקו ${toDelete.size} לא-נבחרים מהקבוצה`)
+  }
+
+  function deleteAllInGroup(groupId: string) {
+    const group = duplicateGroups?.find(g => g.groupId === groupId)
+    if (!group) return
+
+    const toDelete = group.contacts.map(c => c.id)
+    
+    // Save all as deleted
+    toDelete.forEach(id => {
+      const relatedContacts = group.contacts.filter(c => c.id !== id)
+      deleteContact(id, 'duplicate', relatedContacts)
+    })
+    
+    setDuplicatesDeletedTotal(prev => prev + toDelete.length)
+    setStatusMsg(`נמחקו כל ${toDelete.length} אנשי הקשר בקבוצה`)
+  }
+
+  function keepAllInGroup(groupId: string) {
+    const group = duplicateGroups?.find(g => g.groupId === groupId)
+    if (!group) return
+
+    // Remove group from duplicates (mark as resolved)
+    setDuplicateGroups(prev => prev?.filter(g => g.groupId !== groupId) ?? null)
+    
+    // Clear selections for this group
+    setSelectedDuplicateIds(prev => {
+      const next = new Set(prev)
+      group.contacts.forEach(c => next.delete(c.id))
+      return next
+    })
+    
+    setStatusMsg(`הקבוצה סומנה כמאושרת - כל ${group.contacts.length} אנשי הקשר נשמרו`)
   }
 
   function deleteContactsWithoutPhone() {
@@ -3113,7 +3393,14 @@ export default function App() {
             onClick={() => exportVcf(visibleContacts)}
             disabled={visibleContacts.length === 0}
           >
-            ייצוא
+            ייצוא VCF
+          </button>
+          <button
+            type="button"
+            onClick={() => exportExcel(visibleContacts)}
+            disabled={visibleContacts.length === 0}
+          >
+            ייצוא Excel
           </button>
           <button type="button" className="header-upload-btn" onClick={openImportModal}>
             ייבוא
@@ -3168,6 +3455,14 @@ export default function App() {
           }}
         >
           עריכה ידנית
+        </button>
+        <button
+          role="tab"
+          aria-selected={activeTab === 'deleted'}
+          className={activeTab === 'deleted' ? 'tab-btn active' : 'tab-btn'}
+          onClick={() => setActiveTab('deleted')}
+        >
+          נמחקים ({deletedContacts.length})
         </button>
       </section>
 
@@ -3628,7 +3923,7 @@ export default function App() {
 
                     <button
                       className="contact-card-delete-btn"
-                      onClick={() => deleteContact(c.id)}
+                      onClick={() => deleteContact(c.id, 'manual')}
                       title="מחק"
                     >
                       🗑️
@@ -3657,15 +3952,21 @@ export default function App() {
         </section>
       )}
 
+      {activeTab === 'namefix' && nameFixSuggestions && nameFixSuggestions.length === 0 && (
+        <section className="split-preview">
+          <header>
+            <h2>תיקון שמות</h2>
+          </header>
+          <p className="empty-note">✅ מעולה! לא נמצאו שמות הדורשים תיקון.</p>
+        </section>
+      )}
+
       {activeTab === 'namefix' && !nameFixSuggestions && (
         <section className="split-preview">
           <header>
             <h2>תיקון שמות</h2>
-            <div className="split-actions">
-              <button onClick={handleNameFix} disabled={contacts.length === 0}>אתר תיקוני שמות</button>
-            </div>
           </header>
-          <p className="empty-note">אין כרגע הצעות פתוחות. הפעל פעולה כדי לקבל הצעות.</p>
+          <p className="empty-note">מחפש הצעות לתיקון שמות...</p>
         </section>
       )}
 
@@ -3913,6 +4214,8 @@ export default function App() {
                     </label>
                     <button onClick={() => keepOnlySelectedInGroup(group.groupId)} disabled={selectedInGroupCount === 0}>השאר נבחרים</button>
                     <button className="danger" onClick={() => deleteSelectedInGroup(group.groupId)} disabled={selectedInGroupCount === 0}>מחק נבחרים</button>
+                    <button onClick={() => keepAllInGroup(group.groupId)}>השאר הכל</button>
+                    <button className="danger" onClick={() => deleteAllInGroup(group.groupId)}>מחק הכל</button>
                   </div>
                   <div className="dup-cards-row">
                     {group.contacts.map(c => {
@@ -3926,7 +4229,7 @@ export default function App() {
                           <div className="dup-card-head">
                             <div className="dup-head-main">
                               <div className="dup-name-row">
-                                <strong>{c.name}</strong>
+                                <strong>{formatNameDisplay(c.firstName, c.lastName) || c.name}</strong>
                                 <button className="dup-edit-trigger" onClick={() => openDuplicateQuickEdit(c)} title="ערוך איש קשר" aria-label="ערוך איש קשר">✎</button>
                               </div>
                               {isRec && <span className="recommended-badge">מומלץ לשמירה</span>}
@@ -3940,7 +4243,7 @@ export default function App() {
                                 />
                                 <span aria-hidden="true" />
                               </label>
-                              <button className="danger" onClick={() => deleteContact(c.id)}>מחק</button>
+                              <button className="danger" onClick={() => deleteContact(c.id, 'manual')}>מחק</button>
                             </div>
                           </div>
                           <div className="phone-row">
@@ -3999,6 +4302,81 @@ export default function App() {
         </div>
       )}
 
+      {/* Deleted contacts tab */}
+      {activeTab === 'deleted' && (
+        <section className="deleted-section">
+          <header>
+            <h2>נמחקים ({deletedContacts.length})</h2>
+            <div className="deleted-actions">
+              {deletedContacts.length > 0 && (
+                <button className="danger" onClick={clearAllDeleted}>רוקן סל מחזור</button>
+              )}
+            </div>
+          </header>
+          
+          {deletedContacts.length === 0 ? (
+            <div className="empty-note">
+              <p>אין אנשי קשר נמחקים</p>
+            </div>
+          ) : (
+            <div className="deleted-list">
+              {deletedContacts.map((entry, index) => (
+                <div key={index} className="deleted-item">
+                  <div className="deleted-item-header">
+                    <div className="deleted-item-info">
+                      <strong>{formatNameDisplay(entry.contact.firstName, entry.contact.lastName) || entry.contact.name}</strong>
+                      <span className="deleted-meta">
+                        נמחק ב-{new Date(entry.deletedAt).toLocaleDateString('he-IL')} 
+                        {' '}({entry.reason === 'duplicate' ? 'כפילות' : 'ידני'})
+                      </span>
+                    </div>
+                    <button 
+                      className="restore-btn" 
+                      onClick={() => restoreDeletedContact(index)}
+                      title="שחזר איש קשר"
+                    >
+                      שחזר
+                    </button>
+                  </div>
+                  
+                  <div className="deleted-item-details">
+                    {entry.contact.phones.length > 0 && (
+                      <div className="detail-row">
+                        <span className="detail-label">טלפונים:</span>
+                        <span className="detail-value">{entry.contact.phones.join(', ')}</span>
+                      </div>
+                    )}
+                    {entry.contact.emails.length > 0 && (
+                      <div className="detail-row">
+                        <span className="detail-label">מיילים:</span>
+                        <span className="detail-value">{entry.contact.emails.join(', ')}</span>
+                      </div>
+                    )}
+                    <div className="detail-row">
+                      <span className="detail-label">מקור:</span>
+                      <span className="detail-value">{entry.contact.source}</span>
+                    </div>
+                    
+                    {entry.reason === 'duplicate' && entry.relatedContacts && entry.relatedContacts.length > 0 && (
+                      <div className="related-contacts">
+                        <span className="detail-label">נמחק בגלל דמיון ל:</span>
+                        <div className="related-list">
+                          {entry.relatedContacts.map(related => (
+                            <span key={related.id} className="related-contact">
+                              {formatNameDisplay(related.firstName, related.lastName) || related.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       {/* Dictionary Modal */}
       {isDictionaryModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsDictionaryModalOpen(false)}>
@@ -4044,7 +4422,7 @@ export default function App() {
             <div className="modal-body">
               {conversionStage === 'confirm' && (
                 <>
-                  <p>גרור לכאן או בחר קובץ מהמחשב. נתמכים: VCF או IB (נוקיה).</p>
+                  <p>גרור לכאן או בחר קובץ מהמחשב. נתמכים: VCF, IB (נוקיה) או Excel (xlsx).</p>
                   <div
                     className="import-dropzone"
                     onDragOver={e => { e.preventDefault(); e.stopPropagation() }}
@@ -4055,7 +4433,7 @@ export default function App() {
                     <input
                       ref={importFileInputRef}
                       type="file"
-                      accept=".vcf,.ib"
+                      accept=".vcf,.ib,.xlsx"
                       multiple
                       className="import-hidden-input"
                       onChange={e => {
