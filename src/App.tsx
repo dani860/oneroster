@@ -1783,7 +1783,6 @@ function areLikelySameName(a: Contact, b: Contact): boolean {
 
   // Much more conservative similarity check
   // Only consider names similar if they are very close
-  const maxLen = Math.max(nameA.length, nameB.length)
   const lengthDiff = Math.abs(nameA.length - nameB.length)
   
   // If length difference is too big, not similar
